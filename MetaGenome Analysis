@@ -95,8 +95,23 @@ prodigal  -i bin.10.fa -o output_genes.gbk -a output_protein.faa
 ## Step 3: Run a BLASTp to analyze what is in each bin 
 **Take code from Blast file**
 
+
+## Step 4: Predict Orthogroups with an Outgroup 
+```
+/home/timothy/programs/OrthoFinder_v2.5.4/orthofinder -f /scratch/shrinivas/Paulinella_Metagenome/Oct25_2023/All_Euk_Tree
+```
+
 # PHASE III: Genome Clean Up 
-Assuming there is bin of interest from which we want to clean up a genome for publishing and future analysis, like bin21 in 
+Assuming there is bin of interest from which we want to clean up a genome for publishing and future analysis, like bin21 in P.ovalis experiment. 
+
+## Step 1: Check genome completeness 
+- Tools used: BUSCO 
+```
+/scratch/shrinivas/Paulinella_Metagenome/Busco/busco/bin/busco -i EP00466_Bigelowiella_natans.fasta -o busco_Bigelowiella_natans -m prot -l eukaryota_odb10
+
+```
+
+
 
 
 
