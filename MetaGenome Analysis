@@ -86,8 +86,17 @@ checkm lineage_wf /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.sc
 /scratch/shrinivas/Paulinella_Metagenome/Busco/busco/bin/busco -i EP00466_Bigelowiella_natans.fasta -o busco_Bigelowiella_natans -m prot -l eukaryota_odb10
 ```
 
-## Step 2: 
+## Step 2: Predict Open reading frames: Basically split into amino acid codons 
+- Tools used: PRODIGAL
+```
+prodigal  -i bin.10.fa -o output_genes.gbk -a output_protein.faa
+```
 
+## Step 3: Run a BLASTp to analyze what is in each bin 
+**Take code from Blast file**
+
+# PHASE III: Genome Clean Up 
+Assuming there is bin of interest from which we want to clean up a genome for publishing and future analysis, like bin21 in 
 
 
 
