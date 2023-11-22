@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Metagenome Analysis
 
 This code was developed and utilzied for the work I did on the P.ovalis data in 2023 in the Bhattacharya Lab.
