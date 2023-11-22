@@ -108,10 +108,4 @@ Assuming there is bin of interest from which we want to clean up a genome for pu
 - Tools used: BUSCO 
 ```
 /scratch/shrinivas/Paulinella_Metagenome/Busco/busco/bin/busco -i EP00466_Bigelowiella_natans.fasta -o busco_Bigelowiella_natans -m prot -l eukaryota_odb10
-
 ```
-
-
-
-
-
