@@ -167,6 +167,46 @@ for subdir in $subdirectories; do
     echo -e "$subdir\t$(paste "$main_directory/$subdir"/*.sf | tr '\t' '\n')" >> "$output_file"
 done
 
+### Works
+
+hisat2 -p 8 --rf --dta -q -x /scratch/shrinivas/Transcript/Lin_Paper/cleaned_reads/Reference_Genome/Symb_ref.fasta -U /scratch/shrinivas/Transcript/Lin_Paper/cleaned_reads/SRR1300304.fastq.gz -S SRR1300304.sam
+
+## Convert sam files to bam files 
+
+samtools view -bS SRR1300302.sam > SRR1300302.bam
+
+
+## Conda environment list 
+- mutltiqc --> for multiqc, samtools
+- Microbiome_Chille --> fastp, fastqc
+
+stringtie sorted_output.bam -G transcripts.gtf -e -B -A transcript_abundances.gtf
+
+awk '$3 == "transcript" { match($0, /transcript_id "([^"]+)"/, tid); match($0, /FPKM "([^"]+)"/, fpkm); match($0, /TPM "([^"]+)"/, tpm); print tid[1], fpkm[1], tpm[1] }' transcript_abundances.gtf > transcript_abundances.txt
+
+
+### Once its converted into a sam file post indexing 
+--> Do hisat2 and align with the reference genome 
+hisat2 -p 8 --rf --dta -q -x /scratch/shrinivas/Transcript/Lin_Paper/cleaned_reads/Reference_Genome/Symb_ref.fasta -U /scratch/shrinivas/Transcript/Lin_Paper/cleaned_reads/SRR1300304.fastq.gz -S SRR1300304.sam
+
+
+### Now convert the sam file to a bam file using samtools
+samtools view -bS SRR1300304.sam >> SRR1300304.bam
+
+### sort the bam file 
+samtools sort SRR1300304.bam -o sorted_output.bam
+
+### use stringtie to obtain transcripts
+stringtie sorted_output.bam -o transcripts.gtf
+
+stringtie -eB -G transcripts.gtf -o transcript_counts.txt sorted_output.bam # maybe 
+
+stringtie sorted_output.bam -G transcripts.gtf -e -B -A transcript_abundances.gtf
+
+# convert that into a text file 
+cat transcript_abundances.gtf >> SRR1300304.txt 
+
+
 cp /scratch/timothy/genome_data/Symbiodinium_Genomes/coral_meta_omics/Durusdinium_trenchii_CCMP2556_v1.topIsoform.pep.faa /scratch/shrinivas/Transcript/Camp_Paper/Genomes
 
 /home/timothy/programs/my_interproscan/interproscan-5.53-87.0/interproscan.sh -dp --goterms --cpu 8 --output-file-base SymbD_genes.pep.InterProScan --tempdir SymbDgenes.pep.InterProScan.temp --input Durusdinium_trenchii_CCMP2556_v1.topIsoform.pep.faa
