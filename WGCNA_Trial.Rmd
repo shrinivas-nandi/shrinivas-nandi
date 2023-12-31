@@ -1,0 +1,496 @@
+---
+title: "WGCNA_Acropora_Proteomics"
+output: html_document
+date: "2023-10-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load all the necesssary libraries
+
+```{r}
+library("genefilter")
+library("DESeq2")
+library("RColorBrewer")
+library("WGCNA")
+library("flashClust")
+library("gridExtra")
+library("ComplexHeatmap")
+library("goseq")
+library("dplyr")
+library("clusterProfiler")
+library("pheatmap")
+library("magrittr")
+library("dendsort")
+#library("goodGenes")
+library("ggplot2")
+library('vegan')
+library('factoextra')
+library('ggfortify')
+library('naniar')
+library('cowplot')
+library("mixOmics")
+library("tidyverse")
+library("RVAideMemoire")
+library("VennDiagram")
+library("broom")
+library("devtools")
+library("tidyr")
+```
+# load in the datasets
+```{r}
+options(scipen = 999)
+data <-read.csv("Acr_Complete.csv")
+metadata <- read.csv("Sample_Metadata.csv")
+```
+
+Filter metabolites and rule out zeroes
+```{r}
+
+# check for zero values
+rowSums(dplyr::count(data)) > 0
+
+# Gene filtering 
+filt <- filterfun(pOverA(0.04,0.01)) # goes for like 4 ruled out or whatever
+
+#create filter for the counts data
+gfilt <- genefilter(data, filt)
+
+#identify genes to keep by count filter
+keep <- data[gfilt,]
+
+#identify gene lists
+n.keep <- rownames(keep)
+
+#gene count data filtered in PoverA, P percent of the samples have counts over A
+data_filt <- as.data.frame(data[which(rownames(data) %in% n.keep),])
+
+#How many rows do we have before and after filtering?
+nrow(data) #Before
+nrow(data_filt) #Afte
+
+# all worked out fine
+
+```
+Check for outliers. Metabolie outliers
+```{r}
+all(rownames(metadata$sample_id) %in% colnames(data_filt))
+all(rownames(metadata$sample_id) == colnames(data_filt))
+
+# Returns true
+# Run code to look for outlier
+sampleTree = hclust(dist(data_filt), method = "average");
+plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+```
+
+Sample outliers
+```{r}
+# go back to widht based orientation 
+data_filt <- as.data.frame(t(data_filt))
+
+#data_filt <- as.data.frame(apply(data_filt, 2, function(x) format(x, scientific = FALSE)))
+# right so I need to fix the row column names 
+
+colnames(data_filt) <- unlist(data_filt[1, ])
+data_filt <- data_filt[-1, ]
+# look for outliers in tree based on samples 
+SampleTree = hclust(dist(data_filt), method = "average");
+plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+
+```
+
+
+Pick out soft power 
+
+```{r}
+
+allowWGCNAThreads(20)
+
+powers <- c(c(1:20), seq(from = 12, to=20, by=2)) #Create a string of numbers from 1 through 10, and even numbers from 10 through 20
+# 
+# # Call the network topology analysis function
+sft <-pickSoftThreshold(data_filt, powerVector = powers, verbose = 5)
+
+
+# pLot out softthreading 
+sizeGrWindow(9, 5)
+par(mfrow = c(1,2));
+cex1 = 0.9;
+# # # Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+# # # this line corresponds to using an R^2 cut-off
+abline(h=0.8,col="red")
+# # # Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+```
+
+
+Soft power looks to be best at 14
+
+
+```{r}
+#data_filt_2 <- subset(data_filt, !grepl("Protein.IDs", rownames(data_filt)))
+data_filt_2 <- as.data.frame(lapply(data_filt, as.numeric))
+#data_filt_2 <- data_filt
+#data_filt_2[, -1] <- lapply(data_filt_2[, -1], as.numeric)
+```
+The issue with this code is that it is getting rid of sample names and converting them into numbers. Which may be an issue downstream 
+
+```{r}
+picked_power = 14
+temp_cor <- cor
+datExpr <- data_filt_2
+cor <- WGCNA::cor     # Force it to use WGCNA cor function (fix a namespace conflict issue)
+netwk <- blockwiseModules(datExpr,                         # <= input here
+                          # == Adjacency Function ==
+                          power = picked_power,               # <= power here
+                          networkType = "unsigned",
+                          
+                          # == Tree and Block Options ==
+                          deepSplit = 2,
+                          pamRespectsDendro = F,
+                          # detectCutHeight = 0.75,
+                          minModuleSize = 5,                  
+                          maxBlockSize = 2000,
+                          
+                          # == Module Adjustments ==
+                          reassignThreshold = 0,
+                          mergeCutHeight = 0.25,
+                          
+                          # == TOM == Archive the run results in TOM file (saves time) but it doesn't save a file
+                          saveTOMs = F,
+                          saveTOMFileBase = "ER",
+                          
+                          # == Output Options
+                          numericLabels = T,
+                          verbose = 3)
+
+cor <- temp_cor     # Return cor function to original namespace
+```
+
+```{r}
+# Identify labels as numbers 
+mergedColors = netwk$colors
+# Plot the dendrogram and the module colors underneath
+#pdf("blockwise_module_colors.pdf")
+plot <- plotDendroAndColors(
+  netwk$dendrograms[[1]],
+  mergedColors[netwk$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE,
+  hang = 0.03,
+  addGuide = TRUE,
+  guideHang = 0.05 )
+
+
+table(mergedColors)
+plot
+```
+
+
+
+```{r}
+module_df <- data.frame(
+  Metabolite = names(netwk$colors),
+  colors = netwk$colors)
+  #colors = labels2colors(ne
+```
+
+
+```{r}
+MEs <- moduleEigengenes(data_filt_2, mergedColors)$eigengenes
+
+# Reorder modules so similar modules are next to each other
+MEs <- orderMEs(MEs)
+module_order = names(MEs) %>% gsub("ME","", .)
+
+# Add Sample names
+MEs0 <- MEs
+MEs0$Sample.ID = row.names(MEs)
+
+# tidy & plot data
+mME = MEs0 %>%
+  pivot_longer(-Sample.ID) %>%
+  mutate(
+    name = gsub("ME", "", name),
+    name = factor(name, levels = module_order)
+  )
+
+mME %>% ggplot(., aes(x=Sample.ID, y=name, fill=value)) +
+  geom_tile() +
+  theme_bw() +
+  scale_fill_gradient2(
+    low = "blue",
+    high = "red",
+    mid = "white",
+    midpoint = 0,
+    limit = c(-1,1)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Module-Sample Relationships", y = "Modules", fill="corr")
+# so x axis gotta 
+# signed treats negative and positive differently 
+# signed is what we want 
+```
+Okay it works till here. 
+From here its dodgy
+
+```{r}
+metadata$num <- c("1")
+allTraits <- as.data.frame(pivot_wider(metadata, names_from = Treatment, values_from = num, id_cols = Sample))
+allTraits[is.na(allTraits)] <- c("0")
+rownames(allTraits) <- allTraits$Sample
+datTraits <- allTraits[,c(-1)]
+head(datTraits)
+
+#define numbers of metabolites and samples and view 
+nMetabolites = ncol(data_filt)
+nSamples = nrow(data_filt)
+```
+This is where we are stuck like a duck
+
+```{r}
+# Assuming your_dataframe is the name of your data frame
+#datTraits <- datTraits[!(datTraits$row_name_column == "Protein.IDs"), ]
+name_to_remove <- "Protein.IDs"
+
+if (name_to_remove %in% rownames(allTraits)) {
+  allTraits <- allTraits[rownames(allTraits) != name_to_remove, ]
+}
+
+if (name_to_remove %in% rownames(MEs)) {
+  MEs <- MEs[rownames(MEs) != name_to_remove, ]
+}
+```
+
+```{r}
+moduleTraitCor = cor(MEs, datTraits, use = "p");
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples);
+Colors=sub("ME","", names(MEs))
+moduleTraitTree = hclust(dist(t(moduleTraitCor)), method = "average")
+plot(moduleTraitTree) # error
+dev.off()
+```
+Okay its the final bit of code that is buggy. Ie the plotting of the dendogram. 
+Invalid dendogram input 
+
+```{r}
+textMatrix = paste(signif(moduleTraitCor, 2), "\n(",signif(moduleTraitPvalue, 1), ")", sep = "")
+dim(textMatrix) = dim(moduleTraitCor)
+head(textMatrix)
+labeledHeatmap(Matrix = moduleTraitCor, xLabels = names(datTraits),  yLabels = names(MEs), ySymbols = names(MEs), cex.lab.y= 0.55, cex.lab.x= 0.55, colors = blueWhiteRed(50), textMatrix = textMatrix, setStdMargins = TRUE, cex.text = 0.25, textAdj = , zlim = c(-1,1), main = paste("Module-trait relationships"))
+#pdf(file="Mcap2020/Figures/Metabolomics/WGCNA/Module-trait-relationships.pdf")
+labeledHeatmap(Matrix = moduleTraitCor, xLabels = names(datTraits),  yLabels = names(MEs), ySymbols = names(MEs), cex.lab.y= 0.55, cex.lab.x= 0.55, colors = blueWhiteRed(50), textMatrix = textMatrix, setStdMargins = TRUE, cex.text = 0.25, textAdj = , zlim = c(-1,1), main = paste("Module-trait relationships"))
+dev.off()
+
+```
+
+# 3. Plot module trait associations with a complex heatmap
+
+```{r}
+#bold sig p-values
+#dendrogram with WGCNA MEtree cut-off
+#colored y-axis
+#Create list of pvalues for eigengene correlation with specific life stages
+heatmappval <- signif(moduleTraitPvalue, 1)
+#Make list of heatmap row colors
+htmap.colors <- names(MEs)
+htmap.colors <- gsub("ME", "", htmap.colors)
+
+row_dend = dendsort(hclust(dist(moduleTraitCor)))
+col_dend = dendsort(hclust(dist(t(moduleTraitCor))))
+
+#row_ha = rowAnnotation(ModuleSize = anno_text("11", "127", "8", "64", "85"), just = "left", 
+#        location = unit(0.5, "npc"), show_name = TRUE)
+# brown (11), grey (127), yellow (8), blue (64), turqoise (85) #figure out how to do row annotations to add sample sizes
+
+lifestage_order<-c("Ambient", "Hot")
+
+#pdf(file = "Mcap2020/Figures/Metabolomics/WGCNA/Module-trait-relationship-heatmap.pdf", height = 8, width = 8)
+ht=Heatmap(moduleTraitCor, name = "Eigengene", column_title = "Module-Group Eigengene Correlation", 
+        col = blueWhiteRed(50), 
+        row_names_side = "left", 
+        row_dend_side = "left",
+        width = unit(5, "in"), 
+        height = unit(4.5, "in"), 
+        column_dend_reorder = TRUE, 
+        #cluster_columns = col_dend,
+        row_dend_reorder = FALSE,
+        #column_split = 4, 
+        row_split = 3, 
+        #column_dend_height = unit(.5, "in"),
+        cluster_rows = row_dend, 
+        column_order = lifestage_order, # note this needs to be added)
+        row_gap = unit(2.5, "mm"), 
+        border = TRUE,
+        cell_fun = function(j, i, x, y, w, h, col) {
+        if(heatmappval[i, j] < 0.05) {
+            grid.text(sprintf("%s", heatmappval[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "bold"))
+        }
+        else {
+            grid.text(sprintf("%s", heatmappval[i, j]), x, y, gp = gpar(fontsize = 10, fontface = "plain"))
+        }},
+        column_names_rot = 45,
+        column_names_gp =  gpar(fontsize = 12, border=FALSE),
+        row_names_gp = gpar(fontsize = 12, alpha = 0.75, border = FALSE))
+draw(ht)
+#dev.off()
+```
+
+STUFF NOT YET DONE 
+After WGCNA it needs to mapped onto two more things. Need to load in metadata
+
+
+Bring in additional metadata
+
+FUCK UP
+
+```{r}
+# Number of each metabolites in each module 
+row_mod_num <- data.frame(table(module_df$colors)) 
+
+# Bring in additional metadata
+
+metadata$Sample.ID <- as.factor(metadata$Sample.ID)
+metadata$Timepoint <- as.factor(metadata$Timepoint)
+metadata$Treatment <- as.factor(metadata$Treatment)
+
+mME_meta <- merge(mME, metadata, by = "Sample.ID") %>%
+  rename(Module = name)
+
+```
+
+
+```{r}
+mME_meta<-mME_meta%>%
+  mutate(Cluster=if_else(Module == "2", "Cluster1", 
+                               if_else(Module =="5", "Cluster1", 
+                                       if_else(Module == "0", "Cluster1", 
+                                               if_else(Module == "7", "Cluster2",
+                                               if_else(Module=="6", "Cluster2", 
+                                                       if_else(Module == "3", "Cluster2", 
+                                                       if_else(Module == "1", "Cluster3", 
+                                                               if_else(Module == "8", "Cluster3",
+                                                               if_else(Module == "4", "Cluster3", "NA"))))))))))
+
+mME_meta$Cluster<-as.factor(mME_meta$Cluster)
+
+```
+
+
+```{r}
+mME_meta$Treatment <- factor(mME_meta$Treatment, levels = c("Hot", "Ambient"))
+mME_meta$Timepoint <- factor(mME_meta$Timepoint, levels = c("T0", "T1", "T2"))
+#mME_meta$Sample.ID <- factor(mME_meta$lifestage, levels = c("Egg (1 hpf)", "Embryo (5 hpf)", "Embryo (38 hpf)", "Embryo (65 hpf)", "Larvae (93 hpf) ", "Larvae (163 hpf)", "Larvae (183 hpf)", "Larvae (231 hpf) ", "Metamorphosed Polyp (183 hpf)", "Metamorphosed Polyp (231 hpf)", "Attached Recruit (183 hpf) ", "Attached Recruit (231 hpf)", "Attached Recruit (255 hpf)"))
+
+expression_plots<-mME_meta%>%
+#  group_by(Module) %>%
+  ggplot(aes(x=Timepoint, y=value, colour=Treatment)) +
+  facet_wrap(~ Module)+
+  ylab("Module Expression") +
+  geom_hline(yintercept = 0, linetype="dashed", color = "grey")+
+  geom_boxplot(width=.5, outlier.shape= NA, position = position_dodge(width = 0.5), alpha = 0.7) +
+  stat_summary(fun=mean, geom="line", aes(group=Timepoint, color = Treatment), position = position_dodge(width = 0.5))  + 
+  geom_point(pch = 21, position = position_dodge(width = 0.5)) +
+  scale_fill_manual(name="Timepoint", values=c("#8C510A", "#DFC27D","#80CDC1")) +
+  scale_colour_manual(name="Timepoint", values=c("#8C510A", "#DFC27D","#80CDC1")) + 
+  xlab("") + #Axis titles
+  theme_bw() + theme(panel.border = element_rect(color="black", fill=NA, size=0.75), panel.grid.major = element_blank(), #Makes background theme white
+                     panel.grid.minor = element_blank(), axis.line = element_blank()) +
+  theme(axis.text = element_text(size = 11 , color = "black"),
+        axis.title = element_text(size = 16, color = "black"), 
+        axis.text.x = element_text(size=11, color="black", angle=45, hjust=1), 
+        legend.title=element_blank(), 
+        legend.text=element_text(color="black", size=12)); expression_plots
+
+ggsave(filename="expression_eigengene.jpeg", plot=expression_plots, dpi=300, width=12, height=8, units="in")
+
+#ggsave(filename="Mcap2020/Figures/Metabolomics/WGCNA/expression_eigengene.pdf", plot=expression_plots, dpi=300, width=12, height=8, units="in")
+
+head(mME_meta)
+```
+
+
+Output eigengene values to a data frame.  
+
+```{r}
+write.csv(mME_meta, "Mcap2020/Output/Metabolomics/WGCNA/module_expression.csv")
+```
+
+
+### 
+```{r}
+mME_meta<-mME_meta%>%
+  mutate(pattern=if_else(Cluster=="Cluster1", "Mid", 
+                         if_else(Cluster=="Cluster2", "Increasing", 
+                                 if_else(Cluster=="Cluster3", "Decreasing", "NA"))))
+mME_meta$pattern<-factor(mME_meta$pattern, levels=c("Decreasing", "Mid", "Increasing"))
+
+```
+
+```{r}
+mME_meta%>%
+  group_by(pattern)%>%
+  summarise(module=length(unique(Module)))
+
+```
+Plot based on clusters
+
+```{r}
+#mME_meta$group <- factor(mME_meta$group, levels = c("Egg", "Embryo", "Larvae", "Metamorphosed Polyp", "Attached Recruit"))
+mME_meta$Treatment <- factor(mME_meta$Treatment, levels = c("Hot", "Ambient"))
+mME_meta$Timepoint <- factor(mME_meta$Timepoint, levels = c("T0", "T1", "T2"))
+mME_meta$Cluster <- factor(mME_meta$Cluster, levels = c("Cluster1", "Cluster2", "Cluster3"))
+#mME_meta$lifestage <- factor(mME_meta$lifestage, levels = c("Egg (1 hpf)", "Embryo (5 hpf)", "Embryo (38 hpf)", "Embryo (65 hpf)", "Larvae (93 hpf) ", "Larvae (163 hpf)", "Larvae (183 hpf)", "Larvae (231 hpf) ", "Metamorphosed Polyp (183 hpf)", "Metamorphosed Polyp (231 hpf)", "Attached Recruit (183 hpf) ", "Attached Recruit (231 hpf)", "Attached Recruit (255 hpf)"))
+
+expression_plots_cluster<-mME_meta%>%
+#  group_by(Module) %>%
+  ggplot(aes(x=Timepoint, y=value)) +
+  facet_grid(~pattern)+
+  ylab("Eigengene Expression") +
+  geom_hline(yintercept = 0, linetype="dashed", color = "grey")+
+  geom_point(aes(fill=Treatment, color=Treatment), size=3, pch = 21, position = position_dodge(width = 0.5)) +
+  geom_smooth(aes(Treatment=1), se=TRUE, show.legend = NA, color="black")+
+  scale_fill_manual(name="Timepoint", values=c("#8C510A", "#DFC27D","#80CDC1", "#003C30", "#BA55D3")) +
+  scale_color_manual(name="Timepoint", values=c("#8C510A", "#DFC27D","#80CDC1", "#003C30", "#BA55D3")) +
+  xlab("") + #Axis titles
+  theme_bw() + theme(panel.border = element_rect(color="black", fill=NA, size=0.75), panel.grid.major = element_blank(), #Makes background theme white
+                     panel.grid.minor = element_blank(), axis.line = element_blank()) +
+  theme(axis.text = element_text(size = 11 , color = "black"),
+        axis.title = element_text(size = 16, color = "black", face="bold"), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        legend.position="bottom", 
+        legend.title=element_text(size=12, face="bold"), 
+        legend.text=element_text(color="black", size=12), 
+        strip.text.x = element_text(size = 14, color = "black", face="bold"), 
+        strip.background = element_rect(color="white", fill="white")); expression_plots_cluster
+
+```
+
+# NEED to do this
+```{r}
+library(tidyverse)
+
+metab_rel_change<-mME_meta%>%
+  select(lifestage, Sample.ID, pattern, value)%>%
+  group_by(lifestage, pattern)%>%
+  summarise(mean=mean(value))%>% #calculate means
+  group_by(lifestage, pattern)%>%
+  arrange(lifestage, .by_group = TRUE)%>%
+  group_by(pattern)%>%
+  mutate(metabolite_expression=((mean-dplyr::first(mean))/abs(dplyr::first(mean))))%>%
+  select(pattern, lifestage, metabolite_expression)%>%
+  write_csv("Mcap2020/Data/Integration/RelativeChange/metabolites_relchange.csv")
+```
+
+
+After this, the steps involve tying in KEGG pathways to see exactly what is going on. 
