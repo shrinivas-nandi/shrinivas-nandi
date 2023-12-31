@@ -1,0 +1,223 @@
+
+
+# location Paulinella data
+/scratch/felipe/Paulinella_project_MAY23/Paulinella_genome_data_may23
+
+# P. chromatophora data
+# genome
+Paulinella_chromatophora_CCAC0185_nuclear.assembly.fasta
+# proteins
+Paulinella_chromatophora_CCAC0185_nuclear.pep.faa
+
+# P. micropora KR01 data
+# genome
+Paulinella_micropora_KR01_nuclear.assembly.fasta
+# proteins
+Paulinella_micropora_KR01_nuclear.augustus_190918v4.pep.faa
+
+# P. micropora MYN1 (japanese group) # here probably translate to aminoacids to use in orthofinder
+Paulinella_micropora_MYN1_nuclear.PredGenes_v1.cds.fasta
+
+# P. ovalis-like single cell data
+
+# genomes
+Paulinella_ovalis_nuclear_SingleCell_sag1.assembly.fasta
+Paulinella_ovalis_nuclear_SingleCell_sag2.assembly.fasta
+Paulinella_ovalis_nuclear_SingleCell_sag3.assembly.fasta
+Paulinella_ovalis_nuclear_SingleCell_sag4.assembly.fasta
+Paulinella_ovalis_nuclear_SingleCell_sag5.assembly.fasta
+Paulinella_ovalis_nuclear_SingleCell_sag6.assembly.fasta
+
+# all combined proteins
+Paulinella_ovalis_nuclear_SingleCell_ALL.assembly.fasta.augustus.pep.faa
+
+# Bin candidate from Tim blast results
+/scratch/felipe/Paulinella_project_MAY23/Paulinella_genome_data_may23/August_Paulinella_processing/Povalis_metag_bins_gene_prediction/Tim_bin
+
+# 18 s sequences to run blast against the metagenomes
+/scratch/felipe/Paulinella_project_MAY23/Paulinella_spades_assembly/18S_blast_paulinella
+
+# file with 18s sequences from several Paulinella
+Paulinella_18s_data.fasta
+
+#  blastdb with all Paulinella proteins ; to make a blast db makeblastdb -in Paulinella_18s_data.fasta  -dbtype nucl -out 
+Paulinella_18s_data_DB
+
+# run blast; example
+blastn -query /scratch/felipe/Paulinella_project_MAY23/Paulinella_spades_assembly/P_ovalis_metag_contigs.fasta -db Paulinella_18s_data_DB -evalue 1e-3 -outfmt 6 -num_threads 26 -out P_ovalis_metag_contigsXPaulinella_18s_data_DB.tsv
+
+# get top hits
+awk '! a[$1]++' P_ovalis_metag_contigsXPaulinella_18s_data_DB.tsv | awk 'BEGIN{print "qseqid""\t""sseqid""\t""pident""\t""length""\t""mismatch""\t""gapopen""\t""qstart""\t""qend""\t""sstart""\t""send""\t""evalue""\t""bitscore"}1' | sort -k 3 -n > P_ovalis_metag_contigsXPaulinella_18s_data_DB_top_hits_sorted.tsv
+
+# get sequences and extract from big fasta
+cut -f 1 P_ovalis_metag_contigsXPaulinella_18s_data_DB_top_hits_sorted.tsv | sort | uniq > P_ovalis_metag_18s_cand.txt
+
+
+blastn -query /scratch/shrinivas/Paulinella_project_MAY23/Paulinella_spades_assembly/P_ovalis_metag_contigs.fasta -db Paulinella_18s_data_DB -evalue 1e-3 -outfmt 6 -num_threads 26 -out P_ovalis_metag_contigsXPaulinella_18s_data_DB.tsv
+
+
+
+# to run a diamond blastp search
+
+# export our DIAMOND VERSION
+export PATH=/home/timothy/programs/DIAMOND_v2.0.15/bin:$PATH
+
+# export diamond DB
+export PATH=$PATH:/scratch/databases/bin
+
+# run diamond ; using "myqueryfile.fasta" as input example against the database that I created "All_Paulinella_pep.fasta_diamond_DB.dmnd"
+diamond blastp --db All_Paulinella_pep.fasta_diamond_DB.dmnd --query myqueryfile.fasta --ultra-sensitive --evalue 1e-5 --max-target-seqs 1 --max-hsps 1 --outfmt 6 --threads 30 --out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+
+
+# get tophits (first sequence per hit)
+awk '! a[$1]++' myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv > myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB_top_hits.tsv
+
+################################################################################################################################################
+# lets do a trial here 
+diamond blastp --db All_Paulinella_pep.fasta_diamond_DB.dmnd --query myqueryfile.fasta --ultra-sensitive --evalue 1e-5 --max-target-seqs 1 --max-hsps 1 --outfmt 6 --threads 30 --out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastp -query Trial_BLAST.fa -db nr -outfmt 6 -entrez_query "Alveolata [Organism]" -remote -out outputfile 
+
+# path to paulinella data 
+/scratch/shrinivas/Paulinella_Metagenome/18S_blast_paulinella
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn -query bin.1.fa -db /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/blastdb --ultra-sensitive -evalue 1e-5 -max_target_seqs 1 -outfmt 6 -num_threads 30 -out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+/home/timothy/programs/DIAMOND_v2.0.15/bin/diamond --db /scratch/shrinivas/Paulinella_Metagenome/18S_blast_paulinella/Paulinella_18s_data_DB --query bin.1.fa --ultra-sensitive --evalue 1e-5 --max-target-seqs 1 --max-hsps 1 --outfmt 6 --threads 30 --out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+################################################################################################################################################
+# if you want to use blast (not diamond)
+
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn -query bin.1.fa -db /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/blastdb/Paulinella_18s_data.fasta -max_target_seqs 5 -outfmt 6 -num_threads 30 -out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+
+
+
+# export blast
+export PATH=$PATH:/home/timothy/programs/ncbi-blast-2.10.1+/bin
+
+# make blastdb with all Paulinella proteins
+makeblastdb -in Povalis_metag_candidates.fasta  -dbtype prot -out Povalis_metag_candidates.fasta_DB
+
+# run blast here to get only 100 hits per query
+blastp -query myqueryfile.faa -db Povalis_metag_candidates.fasta_DB -evalue 1e-5 -max_target_seqs 100 -max_hsps 1 -outfmt 6 -num_threads 46 -out myqueryfileXPovalis_metag_candidates.fasta_DB.tsv
+
+# other
+# for instance to combine two blast runs outputs (one against a paulinella DB and other against the genbank NR)
+# awk 1 to combine files; sort by column 1 and then sort by bitscore, so the best bitscore for two runs will appear on top as the best blast hit
+awk 1 PaulHet_v2.genes.pep.faa_XAll_Paulinella_pep.fasta_diamond_DB_blastp_top_hits.tsv PaulHet_v2.genes.pep.faa.diamondp_nr.outfmt6_top_hits.tsv | sort -k1,1 -k12,12gr > PaulHet_v2.genes.pep.faa.diamondp_nr_All_Paulinella_pep.outfmt6_top_hits_sorted.tsv
+
+
+################################################################################################################################################
+################################################################################################################################################
+################################################################################################################################################
+Shrini Work Space
+################################################################################################################################################
+################################################################################################################################################
+################################################################################################################################################
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn -query bin.21.fa -db /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/blastdb/Paulinella_18s_data.fasta -max_target_seqs 5 -evalue 1e-5 -outfmt 6 -num_threads 30 -out myqueryfile.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv
+
+
+# perc_identity 90
+
+
+BLASTN="/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn"
+
+# Set the path to your database
+DATABASE="/scratch/shrinivas/Paulinella_Metagenome/All_Paulinella_BLASTdb/All_Paulinella_Not_Ovalis.fasta"
+
+# Set BLASTN parameters
+MAX_TARGET_SEQS="1"
+EVALUE="1e-5"
+OUTFMT="6"
+NUM_THREADS="30"
+
+OUTPUT_DIR="blastn_results"
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all .fa files in the current directory
+for FILE in *.fa; do
+  OUTPUT="$OUTPUT_DIR/myqueryfile_${FILE%.fa}.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv"
+  # Add a comment line with the source file information
+  echo "# Source File: $FILE" > "$OUTPUT"
+  # Run BLASTN and append the results to the output file
+  $BLASTN -query "$FILE" -db "$DATABASE" -max_target_seqs "$MAX_TARGET_SEQS" -evalue "$EVALUE" -outfmt "$OUTFMT" -num_threads "$NUM_THREADS" >> "$OUTPUT"
+done
+
+# Merge all individual output files into a single file
+cat "$OUTPUT_DIR"/*.tsv > merged_output_paulinella_genomes.tsv
+
+
+
+
+#######################
+# Make a database 
+Paulinella_chromatophora_CCAC0185_nuclear.assembly.fasta
+Paulinella_micropora_KR01_nuclear.assembly.fasta
+Paulinella_micropora_MYN1_nuclear.PredGenes_v1.cds.fasta
+
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/makeblastdb -dbtype nucl -in All_Paulinella_Not_Ovalis.fasta
+
+/scratch/shrinivas/Paulinella_Metagenome/All_Paulinella_BLASTdb/All_Paulinella_Not_Ovalis.fasta 
+
+BLASTN="/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn"
+
+# Set the path to your database
+DATABASE="/scratch/shrinivas/Paulinella_Metagenome/All_Paulinella_BLASTdb/All_Paulinella_Not_Ovalis.fasta"
+
+# Set BLASTN parameters
+MAX_TARGET_SEQS="1"
+EVALUE="1e-5"
+OUTFMT="6"
+NUM_THREADS="30"
+PERC_IDENTITY="90"  # Add this line to set the percent identity to 90
+
+OUTPUT_DIR="blastn_results"
+mkdir -p "$OUTPUT_DIR"
+
+# Loop through all .fa files in the current directory
+for FILE in *.fa; do
+  OUTPUT="$OUTPUT_DIR/myqueryfile_${FILE%.fa}.fastaXAll_Paulinella_pep.fasta_diamond_DB.tsv"
+  # Add a comment line with the source file information
+  echo "# Source File: $FILE" > "$OUTPUT"
+  # Run BLASTN with percent identity and append the results to the output file
+  $BLASTN -query "$FILE" -db "$DATABASE" -max_target_seqs "$MAX_TARGET_SEQS" -evalue "$EVALUE" -outfmt "$OUTFMT" -num_threads "$NUM_THREADS" -perc_identity "$PERC_IDENTITY" >> "$OUTPUT"
+done
+
+# Merge all individual output files into a single file
+cat "$OUTPUT_DIR"/*.tsv > merged_output_paulinella_genomes.tsv
+
+
+scp -r shrinivas@coral.rutgers.edu:/scratch/shrinivas/Paulinella_Metagenome/CheckM_output/storage/bin_stats.tree.tsv /Users/Shrini/Desktop
+
+
+/scratch/shrinivas/Paulinella_Metagenome/SAG_blastdb/Paul_SAG_All.fasta
+
+
+ checkm lineage_wf -x fasta bin.1.fa /scratch/shrinivas/Paulinella_Metagenome/CheckM_output
+
+
+checkm lineage_wf /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/bin_fa /scratch/shrinivas/Paulinella_Metagenome/output_directory --reduced_tree -t 30 -x .fa
+
+$ checkm lineage_wf checkm lineage_wf -t 12 -x fa /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins .
+bin.1.fa /scratch/shrinivas/Paulinella_Metagenome --reduced_tree -t 30
+
+# Works
+checkm lineage_wf /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/bins_fa /scratch/shrinivas/Paulinella_Metagenome/output_directory --reduced_tree -t 30 -x .fa
+
+
+##### BUSCO 
+##### 
+#################
+###############CheckM Code 
+conda activate CheckM
+checkm lineage_wf /scratch/shrinivas/Paulinella_Metagenome/PaulHet_DNA.spades.scaffolds.fasta.MetaBAT2_bins/bins_fa /scratch/shrinivas/Paulinella_Metagenome/output_directory --reduced_tree -t 30 -x .fa
+
+#Busco code 
+
+busco -i [SEQUENCE_FILE] -l [LINEAGE] -o [OUTPUT_NAME] -m [MODE] [OTHER OPTIONS]
+
+busco -i bin.1.fa -o trial_output -m genome
+ls
+
+/scratch/shrinivas/Paulinella_Metagenome/Busco/busco/bin busco -i bin.1.fa -o trial_output -m genome -l eukaryota_odb10
+
+
+-l LINEAGE
+
