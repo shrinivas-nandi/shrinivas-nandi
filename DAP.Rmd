@@ -1,0 +1,79 @@
+---
+title: "Differentially_Accumulated_Proteins"
+output: html_document
+date: "2023-06-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+```
+
+
+```{r}
+metabolites_file <- read.csv(file = "Normalization_Attemtp6.csv") 
+Sample_ID <- read_csv(file = "Sample_T1.csv")
+```
+```{r}
+T1.samples = Sample_ID[which(Sample_ID$Treatment == "Ambient"),] # orignial code uses Treatment = args[4]
+T2.samples = Sample_ID[which(Sample_ID$Treatment == "Heat"),] # same here. But i changed it to the "Ambient and Heat"
+```
+
+```{r}
+T1.metabolites=metabolites_file[c(T1.samples$Sample.ID)]
+T2.metabolites=metabolites_file[c(T2.samples$Sample.ID)]
+
+t1=rownames(data.frame(which(rowSums(T1.metabolites>0)>0))) # redundant. have already sorted out for zeros in python before loading the file here.
+t2=rownames(data.frame(which(rowSums(T2.metabolites>0)>0)))
+tokeep=union(t1,t2)
+
+T1.metabolites=T1.metabolites[tokeep,]
+T2.metabolites=T2.metabolites[tokeep,]
+```
+
+```{r}
+pval=NULL
+
+for(i in 1:length(tokeep))
+{
+  test=t.test(T1.metabolites[i,],T2.metabolites[i,])
+  pval=c(pval,test$p.value)
+}
+
+pvalAdj=p.adjust(pval,method = "BH", n = length(pval))
+```
+
+```{r}
+T1.log2 = log2(T1.metabolites)
+T1.log2[T1.log2=="-Inf"] <-0
+control = apply(T1.log2,1,mean)
+
+T2.log2 = log2(T2.metabolites)
+T2.log2[T2.log2=="-Inf"] <-0
+test = apply(T2.log2,1,mean)
+
+foldchange = test - control
+```
+
+```{r}
+tmp=metabolites_file[tokeep,c(colnames(T1.metabolites),colnames(T2.metabolites))]
+
+s=c(rep(Treatment1,length(colnames(T1.metabolites))),rep(Treatment2,length(colnames(T2.metabolites))))
+```
+```{r}
+stats=cbind("FC"= foldchange, "pval" = pval,"ADJPVALUE"=pvalAdj)
+tmp=cbind(stats,tmp)
+```
+
+```{r}
+#final=metabolites_file[tmp, 1:2]
+export = cbind(tmp, metabolites_file)
+write.csv(tmp,file='Acr_Symb_Normalized_T1_File_Attempt_6.csv')
+
+```
+
