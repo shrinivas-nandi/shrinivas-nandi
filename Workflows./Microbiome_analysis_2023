@@ -1,0 +1,234 @@
+
+##### Faired up Code
+
+
+1. Ran qc on rawreads file 
+fastqc . 
+# subsequently ran multiqc 
+multiqc .
+
+2. Performing fastp to clean the reads up. 
+
+sh -c 'for file in "Microbio1_S103" "Microbio3_S105" "Microbio4_S106" "Microbio5_S107" "Microbio6_S108" "Microbio8_S109" "Microbio9_S110"
+
+do
+fastp --in1 ${file}_R1_001.fastq.gz --in2 ${file}_R2_001.fastq.gz\
+ --out1 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R2_001.clean.fastq.gz\
+ --failed_out /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100\
+ detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+3. Run qc on cleaned reads 
+fastqc ./*.fastq.gz
+# then run multiqc to analyze the clean reads 
+
+4. Prepare reference genome (In a separate directory)
+# Download silva database 
+# cat Mcap + Silva + Galaxea
+# Index the reference genome 
+hisat2-build -f ../ref/Mcap.genome_assembly.fa ./Mcap_ref
+
+5. Align against reference genome 
+$F=/scratch/shrinivas/Microbiome_Chille/cat/
+
+
+hisat2 -p 8 --rf --dta -q -x Reference_Genomes/Microbiome_Ref -1 cleaned_reads/Microbio9_S110_R1_001.clean.fastq.gz -2 cleaned_reads/Microbio9_S110_R2_001.clean.fastq.gz -S hisat2/Microbio9_S110.sam
+
+# hisat2 for my dataset
+hisat2 -p 8 --rf --dta -q -x Reference_Genome/Symb_ref -1 SRR1300302.fastq.gz -S hisat2/SRR1300302.sam
+
+Download and ship sam files to Erin Chille
+
+########################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################
+Rough work
+
+
+sh -c 'for file in "Microbio1_S103" 
+do
+fastp --in1 ${file}_R1_001_Trial.fastq.gz --in2 ${file}_R2_001_Trial.fastq.gz --out1 ../cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 ../cleaned_reads/${file}_R2_001.clean.fastq.gz --failed_out ../cleaned_reads/${file}_failed.txt --qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100
+--adapter_sequence=CTGTCTCTTATACACATCT --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+
+Microbio1_S103_R2_001_Trial.fastq.gz
+
+
+detect_adapter_for_pe
+
+
+
+do
+fastp --in1 ${file}_R1_001_Trial.fastq.gz --in2 ${file}_R2_001_Trial.fastq.gz\
+--out1 ../cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 ../cleaned_reads/${file}_R2_001.clean.fastq.gz\
+ --failed_out ../cleaned_reads/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100\
+ detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+sh -c 'for file in "Microbio1_S103" 
+do
+fastp --in1 ${file}_R1_001_Trial.fastq.gz --in2 ${file}_R2_001_Trial.fastq.gz
+--out1 /scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/${file}_R1_001_Trial.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/${file}_R2_001_Trial.clean.fastq.gz --failed_out scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/${file}_failed.txt --qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100 detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+# This one below worked 
+
+fastp --in1 Microbio1_S103_R1_001_Trial.fastq.gz --in2 Microbio1_S103_R2_001_Trial.fastq.gz\
+ --out1 Microbio1_S103_R1_001_Trial_Clean.fastq.gz --out2 Microbio1_S103_R2_001_Trial_Clean.fastq.gz\
+ --failed_out Microbio1_S103_failed.txt\
+ --qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100 detect_adapter_for_pe\
+ --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+
+# whats not working is the --adapter_sequence = {}
+
+
+
+
+scp -r shrinivas@coral.rutgers.edu:/scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/QC_Result/Microbio1_S103_R2_001_Trial_Clean_fastqc.html /Users/Shrini
+
+
+
+# reference genome annotation using Hisat2 
+
+hisat2-build -f ../ref/Mcap.genome_assembly.fa ./Mcap_ref
+
+hisat2-build -f Reference_Genome_All.fasta 
+
+
+for i in ${array1[@]}; do
+        hisat2 -p 8 --rf --dta -q -x Microbiome_Ref -1 ${i} -2 $(echo ${i}|sed s/_R1/_R2/) -S ${i}.sam
+        samtools sort -@ 8 -o ${i}.bam ${i}.sam
+    		echo "${i}_bam"
+        rm ${i}.sam
+        echo "HISAT2 PE ${i}" $(date)
+done
+
+
+###############
+Editing the main code 
+
+sh -c 'for file in "Microbio1_S103" "Microbio3_S105" "Microbio4_S106" "Microbio5_S107" "Microbio6_S108" "Microbio7_S109" "Microbio8_S110"
+
+do
+fastp --in1 ${file}_R1_001.fastq.gz --in2 ${file}_R2_001.fastq.gz\
+ --out1 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R2_001.clean.fastq.gz\
+ --failed_out /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100\
+ detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+sh -c 'for file in "Microbio9_S110"
+
+do
+fastp --in1 ${file}_R1_001.fastq.gz --in2 ${file}_R2_001.fastq.gz\
+ --out1 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R2_001.clean.fastq.gz\
+ --failed_out /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100\
+ detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+#### 10_05_2023
+sh -c 'for file in "Microbio1_S103"
+
+do
+fastp --in1 ${file}_R1_001_Trial.fastq.gz --in2 ${file}_R2_001_Trial.fastq.gz\
+ --out1 /scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned_reads/${file}_R2_001.clean.fastq.gz\
+--failed_out /scratch/shrinivas/Microbiome_Chille/cat/trial/cleaned/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100 \
+--adapter_sequence=CTGTCTCTTATACACATCT --adapter_sequence_r2=AGATGTGTATAAGAGACAG  --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+# reverse template AGATGTGTATAAGAGACAG #
+
+# trying to use cutadapt to remove adapter 
+cutadapt -a CTGTCTCTTATACACATCT -m 20 -o Microbio1_S103_R2_001_cutadapt.fastq.gz --length-tag length= Microbio1_S103_R2_001_Trial.fastq.gz 
+
+
+/scratch/shrinivas/Microbiome_Chille/cat/Reference_Genomes$ hisat2-build -f Reference_Genome_All.fasta ./Microbiome_Ref
+
+
+## Questions
+1. use of cutadapt? or maybe fix the adapter_sequence {} in fastp 
+2. What is the second part of the code? Aligning onwards
+
+
+
+# 5th May 2023
+
+# this code didnt work. Spit out an output file weird
+
+sh -c 'for file in "Microbio1_S103" "Microbio3_S105" "Microbio4_S106" "Microbio5_S107" "Microbio6_S108" "Microbio8_S109" "Microbio9_S110"
+
+do
+fastp --in1 ${file}_R1_001.fastq.gz --in2 ${file}_R2_001.fastq.gz --out1 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R2_001.clean.fastq.gz --failed_out /scratch/shrinivas/Microbiome_Chille/cat/cleaned/${file}_failed.txt --qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100 
+--adapter_sequence=CTGTCTCTTATACACATCT --adapter_sequence_r2=AGATGTGTATAAGAGACAG  --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+
+##### USE THIS
+
+sh -c 'for file in "Microbio1_S103" "Microbio3_S105" "Microbio4_S106" "Microbio5_S107" "Microbio6_S108" "Microbio8_S109" "Microbio9_S110"
+
+do
+fastp --in1 ${file}_R1_001.fastq.gz --in2 ${file}_R2_001.fastq.gz\
+ --out1 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R1_001.clean.fastq.gz --out2 /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_R2_001.clean.fastq.gz\
+ --failed_out /scratch/shrinivas/Microbiome_Chille/cat/cleaned_reads/${file}_failed.txt \
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --length_required 100\
+ detect_adapter_for_pe --cut_right cut_right_window_size 5 cut_right_mean_quality 20
+done'
+
+
+
+### now do clean reads ka qc. 
+fastqc ./*.fastq.gz
+### then multiqc that mf 
+
+
+
+
+### Aligning reads to ref genome
+
+nano McapHISAT2.sh #to make a script not doing that rn 
+# this is the whole code in the form of a script. converting sam to bam  
+# but we want it in sam only, so we dont have to do the second part 
+
+array1=($(ls $F/*_R1_001.clean.fastq.gz
+for i in ${array1[@]}; do
+        hisat2 -p 8 --rf --dta -q -x Mcap_ref -1 ${i} -2 $(echo ${i}|sed s/_R1/_R2/) -S ${i}.sam
+        samtools sort -@ 8 -o ${i}.bam ${i}.sam
+                echo "${i}_bam"
+        rm ${i}.sam
+        echo "HISAT2 PE ${i}" $(date)
+
+
+
+
+
+#work on this code only. 
+for i in ${array1[@]}; do
+        hisat2 -p 8 --rf --dta -q -x Mcap_ref -1 ${i} -2 $(echo ${i}|sed s/_R1/_R2/) -S ${i}.sam
+
+
+####### rewrite this code in the form of do and sh. #####################
+
+sh -c 'for file in "Microbio1_S103" "Microbio3_S105" "Microbio4_S106" "Microbio5_S107" "Microbio6_S108" "Microbio8_S109" "Microbio9_S110"
+
+
+
+$F=/scratch/shrinivas/Microbiome_Chille/cat/
+array1=($(ls cleaned_reads/*_R1_001.clean.fastq.gz))
+for i in ${array1[@]}; do
+hisat2 -p 8 --rf --dta -q -x Reference_Genomes/Microbiome_Ref -1 ${i} -2 $(echo ${i}|sed s/_R1/_R2/) -S hisat2/${i}.sam
+done
+
+# for one file 
+hisat2 -p 8 --rf --dta -q -x Reference_Genomes/Microbiome_Ref -1 cleaned_reads/Microbio1_S103_R1_001.clean.fastq.gz -2 cleaned_reads/Microbio1_S103_R2_001.clean.fastq.gz -S hisat2/Microbio1_S103.sam
+
+
+hisat2 -p 8 --rf --dta -q -x Reference_Genomes/Microbiome_Ref -1 cleaned_reads/Microbio1_S103_R1_001.clean.fastq.gz -2 cleaned_reads/Microbio1_S103_R2_001.clean.fastq.gz -S hisat2/Microbio1_S103.sam
