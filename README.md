@@ -1,4 +1,5 @@
 # Read me 
 
-This subsection cotains general scripts I use in bash. Not related to any bioinformatics. 
-General stuff, like moving selected files from one folder to another and so on.
+This subsection cotains general scripts I use often in Differential metabolite accumulation analysis and for proteomics as well. 
+Invovles codes for graphs. 
+WGCNA and core scripts as well. 
