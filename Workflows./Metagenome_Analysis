@@ -1,3 +1,9 @@
 T
 
+Make the bowtie and index the genome
 /home/timothy/programs/bowtie2-2.4.4-linux-x86_64/bowtie2-build reference_database.fasta bt2_files/basename --threads 40 
+
+
+Align once reference genome has been built
+
+/home/timothy/programs/bowtie2-2.4.4-linux-x86_64/bowtie2 -x /scratch/shrinivas/Paulinella_Microbiome/MAGs/MAGs_fasta/bowtie_reference_genome/bt2_files/basename -1 /scratch/shrinivas/Paulinella_Microbiome/00_fastq/Attached_R1_001.fastq.gz -2 /scratch/shrinivas/Paulinella_Microbiome/00_fastq/Attached_R2_001.fastq.gz -p 50 > Attached_paulinella_microbiome.sam 2>Attached_paulinella_microbiome.stats
