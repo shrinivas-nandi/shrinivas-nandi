@@ -1,33 +1,42 @@
 
 # Mafft alignment
 
-#!/bin/bash
-
-input_dir="/input/directory"
+# Set the input directory path
+input_directory="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/Downstream_Orthogroups"
 
 # Set the output directory path
-output_dir="enter/output/directory"
-threads=40  # Set the number of threads
+output_directory="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/mafft_aligned"
+
+# Set the number of threads
+threads=40
 
 # Ensure the output directory exists
 mkdir -p "$output_directory"
 
-# Loop through each file in the input directory
-for file in "$input_directory"/*.fa; do
-    if [ -f "$file" ]; then
-        # Extract the file name without extension
-        filename=$(basename -- "$file")
-        filename_no_extension="${filename%.*}"
+# Define a function to perform the alignment
+perform_alignment() {
+    local file="$1"
+    local output_directory="$2"
+    local threads="$3"
 
-        # Construct the output file name
-        output_file="$output_directory/$filename_no_extension"_msa_align.fasta
+    # Extract the file name without extension
+    filename=$(basename -- "$file")
+    filename_no_extension="${filename%.*}"
 
-        # Run the MAFFT command
-        /home/shrinivas/Programs/mafft-linux64/mafft.bat --thread "$threads" --localpair --maxiterate 1000 --auto "$file" > "$output_file"
+    # Construct the output file name
+    output_file="$output_directory/${filename_no_extension}_msa_align.fasta"
 
-        echo "Alignment complete for $filename"
-    fi
-done
+    # Run the MAFFT command
+    /home/shrinivas/Programs/mafft-linux64/mafft.bat --thread "$threads" --localpair --maxiterate 1000 --auto "$file" > "$output_file"
+
+    echo "Alignment complete for $filename"
+}
+
+# Export the function so it can be used by GNU Parallel
+export -f perform_alignment
+
+# Execute the alignment in parallel using GNU Parallel
+find "$input_directory" -type f -name '*.fa' | parallel -j "$threads" perform_alignment {} "$output_directory" "$threads"
 
 
 # Trimal loop
