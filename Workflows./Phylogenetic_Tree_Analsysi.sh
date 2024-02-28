@@ -65,8 +65,39 @@ for file in "$input_dir"/*.fasta; do
     echo "Processed: $filename"
 done
 
+#### Split into multiple directories to effecitvely manually parallelize this adventure 
+#!/bin/bash
 
-##### Iq tree #####
+# Source directory containing files
+source_dir="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/SAR_tree_20_2_24/aligned_trimmed"
+# Destination directory where new directories will be created
+dest_dir="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/SAR_tree_20_2_24/tree_processing"
+
+# Create destination directory if it doesn't exist
+mkdir -p "$dest_dir"
+
+# Counter for directories
+dir_count=1
+# Counter for files moved
+file_count=0
+
+# Loop through files in the source directory
+for file in "$source_dir"/*; do
+    # Create a new directory every 1000 files
+    if [ $((file_count % 1000)) -eq 0 ]; then
+        mkdir -p "$dest_dir/tree_processing_$dir_count"
+        ((dir_count++))
+    fi
+
+    # Move the file to the current directory
+    mv "$file" "$dest_dir/tree_processing_$((dir_count - 1))"
+
+    # Increment file count
+    ((file_count++))
+done
+
+
+##### Iq tree ##########
 
 input_dir="/path/to/your/input/directory"
 
