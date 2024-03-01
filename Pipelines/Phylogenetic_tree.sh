@@ -57,17 +57,71 @@ zcat query.fa.domaind_blastp.outfmt6.gz | /home/timothy/GitHub/Utils/Blast/taxon
 # Step 5: Extract blast sequences
 /scratch/databases/bin/DIAMOND_v2.0.15/bin/diamond getseq --db /scratch/databases/ncbi/2022_07/nr.dmnd | /home/timothy/GitHub/Utils/Blast/taxonomically_downsample_hits/grepf_fasta.py -f <(cut -f2 downsampled_hits.tsv) > downsampled_seqs.fa
 
-# Step 6: Split based on sequence headers 
+# Step 6: Split based on sequence headers (Needs to be tested)
 ## Create mergeable output files with the OG orthogroup
-#
+#!/bin/bash
 
+# Set the directories
+dir1="/path/to/dir1"
+dir2="/path/to/dir2"
+output_dir="/path/to/output_directory"
 
+# Ensure the output directory exists
+mkdir -p "$output_dir"
+
+# Iterate over each file in dir1
+for file1 in "$dir1"/*; do
+    # Get the filename without the directory path
+    filename=$(basename "$file1")
+    
+    # Extract the shared part of the filename
+    shared_part="${filename%%_*}"
+    
+    # Search for corresponding file in dir2
+    file2=$(find "$dir2" -type f -name "${shared_part}_*")
+    
+    if [ -n "$file2" ]; then
+        # Merge the contents of the two files into a new file in the output directory
+        cat "$file1" "$file2" > "$output_dir/$filename"
+        echo "Merged $filename"
+    else
+        echo "No corresponding file found for $filename in $dir2"
+    fi
+done
 
 ## Step 7: Mafft 
+#!/bin/bash
 
+# Set the source directory for merged files
+source_dir="/scratch/shrinivas/Paulinella_Metagenome/Gene_duplication/tree_processing"
+
+# Set the destination directory for aligned files
+destination_dir="/scratch/shrinivas/Paulinella_Metagenome/Gene_duplication/tree_processing_aligned"
+
+# Ensure the destination directory exists
+mkdir -p "$destination_dir"
+
+# Set the number of threads to use
+threads=40  # Change this number based on your system's capabilities
+
+# Run mafft for each input file in parallel
+find "$source_dir" -type f -name "merged_tree_ready_*.fa" | xargs -I {} -P "$threads" /home/shrinivas/Programs/mafft-linux64/mafft.bat --localpair --maxiterate 1000 {} ">" "$destination_dir/trial_{}"_aligned.txt
 
 
 ## Step 8: Trimal
+#!/bin/bash
+
+# Set the directory containing the files
+input_directory="/path/to/directory"
+
+# Iterate over each file in the directory
+for file in "$input_directory"/*.fasta; do
+    # Extract the filename without extension
+    filename=$(basename "$file" .fasta)
+    
+    # Run trimal command
+    trimal -automated1 -in "$file" -out "${input_directory}/${filename}_trim.fasta"
+done
 
 
 
