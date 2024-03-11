@@ -121,11 +121,14 @@ for log_file in "$log_directory"/*.log; do
 done
 
 
-# Step 8: Generate concatenated.out file 
+# Step 8: Generate concatenated.out file and partitions.txt file
 python AMAS.py concat -f fasta -d dna -i *fas -u nexus
 
-# Step 9: Generate bootstrap tree 
-## **idr the script for this**
+
+
+
+# Step 9: Generate nexu file for bootstrap tree 
+## Add best fit model to partition file
 
 '''
 # nexus file format
@@ -138,5 +141,7 @@ G0026270,LG+G4:OG0026325,LG+G4:OG0026836,WAG+F+G4:OG0028086,LG+G4:OG0028225,LG+I
 
 '''
 
+# Step 10:Run Bootstrap tree 
+iqtree -s concatenated.out -spp partitions.txt -bb 2000 -nt AUTO -ntmax 48
 
 
