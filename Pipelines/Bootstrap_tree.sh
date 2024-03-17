@@ -1,4 +1,4 @@
-###Workflow for bootstrap tree generation 
+e###Workflow for bootstrap tree generation 
 
 ##Step 1: Select genomes for each of the species of interest 
 #Normally use python or something to do this selection
