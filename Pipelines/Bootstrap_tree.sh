@@ -121,13 +121,55 @@ for log_file in "$log_directory"/*.log; do
 done
 
 
-# Step 8: Generate concatenated.out file and partitions.txt file
-python AMAS.py concat -f fasta -d dna -i *fas -u nexus
 
+
+# Step 8: Generate concatenated.out file and partitions.txt file
+## To do this properly, the names of the sequences need to be correct. ie need to be the same so they merge correctly. 
+## I do it in steps, by removing bits and pieces in seq headers that are common. For example in this case the sequence headers were like prochloroccoccus___1 and prochlorococcus___2 
+## So i delete everything after ___
+
+#!/bin/bash
+
+# Directory containing the sequence files
+sequence_directory="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/aligned_trimmed"
+
+# Iterate through sequence files
+for sequence_file in "$sequence_directory"/*.fasta; do
+    # Create a new file to store modified sequences with the "_header_fixed_phase1" suffix
+    new_file="${sequence_file%.fasta}_header_fixed_phase1.fasta"
+    
+    # Write modified sequences to the new file
+    while IFS= read -r line; do
+        # Check if the line is a sequence header
+        if [[ $line =~ ^\> ]]; then
+            # Find the position of the third "_" in the header
+            position=$(echo "$line" | grep -b -o '___' | cut -d: -f1 | head -n 1)
+            
+            # If "___" is found, truncate the header
+            if [ "$position" ]; then
+                truncated_header="${line:0:$position-1}"
+                echo "$truncated_header" >> "$new_file"
+            else
+                echo "$line" >> "$new_file"
+            fi
+        else
+            # If it's not a header, simply write the line to the new file
+            echo "$line" >> "$new_file"
+        fi
+    done < "$sequence_file"
+done
+
+# Make the partitions and concat out file 
+python AMAS.py concat -f fasta -d dna -i *fas -u nexus
+python /home/shrinivas/Programs/AMAS/amas/AMAS.py concat -f fasta -d aa -i /scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/aligned_trimmed/* --concat-part trial.partitions.txt --part-format nexus --concat-out trial.concatenated.out --out-format fasta --cores 40
 
 
 
 # Step 9: Generate nexu file for bootstrap tree 
+
+# cleaning up file 
+sed -i 's/msa.*corrected/msa corrected/g' your_file.txt
+
 ## Add best fit model to partition file
 
 '''
