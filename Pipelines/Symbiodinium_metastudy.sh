@@ -22,3 +22,12 @@ while IFS= read -r line; do
     module run Kingfisher_v0.4.1-rev1 kingfisher get -r "$line" -m ena-ascp aws-http prefetch
 done < "$input_list"
 
+# Check qualtiy 
+fastqc *.fastq
+mutliqc .
+
+# Clean up the fasta files 
+fastp -i SRR4237276.fastq -o SRR4237276_clean.fastq --failed_out SRR4237276_failed_out.txt --qualified_quality_phred 20 --unqualified_percent_limit 10 --thread 16 
+
+
+
