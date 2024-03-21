@@ -84,5 +84,7 @@ for dir in SRR*/; do
     fi
 done
 
+# Convert the files to csv 
+# Extract the counts table my doing simple manipulations 
 
 
