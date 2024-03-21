@@ -84,7 +84,48 @@ for dir in SRR*/; do
     fi
 done
 
-# Convert the files to csv 
-# Extract the counts table my doing simple manipulations 
+# Convert all .sf files to tsv 
+find /path/to/your/directory -type f -name '*.sf' -exec sh -c 'basename "{}" .sf | xargs -I % sed "s/|/\t/g" "{}" > "{}.tsv"' \;
 
+# change the tpm column name so its easier to filter 
+find /scratch/shrinivas/Symbiodinium_Meta_Analysis/Counts_tables/Gierz_2017 -type f -name '*.tsv' -exec sh -c 'filename=$(basename "{}" .tsv); awk -v filename="$filename" "BEGIN {FS=OFS=\"\t\"} NR==1 {gsub(/tpm/, \"tpm_\"filename)} {print}" "{}" > "$filename"_fixed_headers.tsv' \;
 
+# Now sort it out, since we only care about the name and the tpm (Since in this case they are columns 1 and 4 respectively)
+for file in /path/to/directory/*.tsv; do awk 'BEGIN{FS=OFS="\t"} NR==1{$4 = FILENAME "_TPM"} 1' "$file" > "${file%.tsv}_fixed.tsv"; done
+
+# Extract the counts table my doing simple manipulations
+# Note this part of the script is in python 
+```
+conda activate py2 
+import pandas as pd
+import os
+
+# Directory containing TSV files
+directory = "/scratch/shrinivas/Symbiodinium_Meta_Analysis/Counts_tables/Gierz_2017/fixed_headers/2_col"
+
+# Get list of TSV files
+tsv_files = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.tsv')]
+
+# Read all TSV files into a list of dataframes
+dfs = [pd.read_csv(file, sep='\t') for file in tsv_files]
+
+# Merge dataframes based on the "Name" column
+merged_df = pd.merge(dfs[0], dfs[1], on='Name')
+for df in dfs[2:]:
+    merged_df = pd.merge(merged_df, df, on='Name')
+
+# Assuming 'df' is the dataframe you already have and 'stats' is the dataframe you want to merge with
+# merged_df = pd.merge(df, stats, on='Calc.MW')
+# You can replace 'df' and 'stats' with the appropriate dataframes in your code
+
+# Display the merged dataframe
+print(merged_df)
+
+output_file = "merged_output.csv"
+merged_df.to_csv(output_file, index=False)
+
+print(f"Merged data saved to '{output_file}'")
+```
+# Also run Eggnogg-mapper against the .pep files 
+
+/home/timothy/programs/eggnog-mapper-2.1.6/emapper.py -i <input> --cpu 48 --itype proteins -o <output> --data_dir /scratch/timothy/databases/eggnog-mapper-rel20211209
