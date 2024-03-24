@@ -1,5 +1,6 @@
 Symbiodinium_metastudy.sh
 
+# PHASE 1: GENERATING COUNTS TABLES (ON SERVER)
 
 '''
 Downloading the raw reads 
@@ -129,3 +130,8 @@ print(f"Merged data saved to '{output_file}'")
 # Also run Eggnogg-mapper against the .pep files 
 
 /home/timothy/programs/eggnog-mapper-2.1.6/emapper.py -i <input> --cpu 48 --itype proteins -o <output> --data_dir /scratch/timothy/databases/eggnog-mapper-rel20211209
+
+# PHASE 2: ASSESSING DATA
+```
+use the obtained data and the metadata to rename some of the columns so that they make sense. 
+```
