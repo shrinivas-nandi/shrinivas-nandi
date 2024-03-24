@@ -27,8 +27,12 @@ done < "$input_list"
 fastqc *.fastq
 mutliqc .
 
-# Clean up the fasta files 
+# Clean up the fasta files (for single end reads)
 fastp -i SRR4237276.fastq -o SRR4237276_clean.fastq --failed_out SRR4237276_failed_out.txt --qualified_quality_phred 20 --unqualified_percent_limit 10 --thread 16 
+
+# (for paired end reads)
+fastp -i {file}_1.fastq -I {file}_2.fastq -o {file}_cleaned_1.fastq -O {file}_cleaned_2.fastq  --failed_out SRR4237276_failed_out.txt
+--qualified_quality_phred 20 --unqualified_percent_limit 10 --thread 16 --detect_adapter_for_pe -f 20 -t 20
 
 # Now once clean. We run SALMON (quasi mapping. doesnt do gene prediction. Good if you already have a CDS files)
 ```
