@@ -120,6 +120,50 @@ for log_file in "$log_directory"/*.log; do
     fi
 done
 
+Clean up best fit model file 
+# Step 7b. Look to check if all of the columns have values and remove any that fail 
+#!/bin/bash
+
+# Specify the path to your TSV file
+tsv_file="your_file.tsv"
+
+# Flag to indicate if any row is missing values
+missing_values=0
+
+# Iterate over each line in the file
+while IFS=$'\t' read -r col1 col2 _; do
+    # Check if either column is empty
+    if [[ -z "$col1" || -z "$col2" ]]; then
+        echo "Found row with missing values: $col1 $col2"
+        missing_values=1
+    fi
+done < "$tsv_file"
+
+# Check if any row has missing values
+if [ "$missing_values" -eq 0 ]; then
+    echo "All rows have values in both columns."
+else
+    echo "Some rows have missing values."
+fi
+
+# remove
+#!/bin/bash
+
+# Specify the path to your input and output TSV files
+input_tsv="input_file.tsv"
+output_tsv="output_file.tsv"
+
+# Remove any existing output file
+rm -f "$output_tsv"
+
+# Iterate over each line in the input file
+while IFS=$'\t' read -r col1 col2 _; do
+    # Check if both columns have values
+    if [[ -n "$col1" && -n "$col2" ]]; then
+        # Write the row to the output file
+        echo -e "$col1\t$col2" >> "$output_tsv"
+    fi
+done < "$input_tsv"
 
 
 
