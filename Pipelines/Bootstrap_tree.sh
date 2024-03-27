@@ -203,6 +203,44 @@ for sequence_file in "$sequence_directory"/*.fasta; do
     done < "$sequence_file"
 done
 
+# alterante if many files, then worth parallelizing the script 
+#!/bin/bash
+
+# Function to process each FASTA file
+process_file() {
+    file="$1"
+    output_file="${file%.fasta}_modified.fasta"
+    
+    # Process each line in the file
+    while IFS= read -r line; do
+        # Check if the line is a header line
+        if [[ $line =~ ^\>.+ ]]; then
+            # Check if the header starts with "g"
+            if [[ $line =~ ^\>g ]]; then
+                # Keep the first two characters of the header
+                header="${line:0:2}"
+                echo "$header" >> "$output_file"
+            else
+                # Otherwise, truncate the header to the first 8 characters
+                header=$(echo "$line" | cut -c 1-8)
+                echo "$header" >> "$output_file"
+            fi
+        else
+            # Otherwise, echo the line as is
+            echo "$line" >> "$output_file"
+        fi
+    done < "$file"
+}
+
+# Export the function to make it available to parallel
+export -f process_file
+
+# Run the script in parallel for each FASTA file
+find . -maxdepth 1 -type f -name "*.fasta" | parallel -j 20 process_file {}
+
+
+AMAS
+
 # Make the partitions and concat out file 
 python AMAS.py concat -f fasta -d dna -i *fas -u nexus
 python /home/shrinivas/Programs/AMAS/amas/AMAS.py concat -f fasta -d aa -i /scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/aligned_trimmed/* --concat-part trial.partitions.txt --part-format nexus --concat-out trial.concatenated.out --out-format fasta --cores 40
