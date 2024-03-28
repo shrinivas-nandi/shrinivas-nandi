@@ -40,8 +40,9 @@ Step 1. Need to have a CDS file with predicted genes
 Step 2. Index the reference (CDS)
 Step 3. Run salmon quant
 ```
-Step 2 (need to finish)
-salmon index -h 
+#Step 2
+ salmon index --transcripts cds_from_genomic.fna --index LCC4_index --threads 20
+
 
 Step 3: Actually running salmon 
 # Set the path to the directory containing the FASTQ files
