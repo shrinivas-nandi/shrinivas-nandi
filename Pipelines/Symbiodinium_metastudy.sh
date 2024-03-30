@@ -150,13 +150,8 @@ for dir in SRR*/; do
     fi
 done
 
-# Convert all .sf files to tsv 
-find /path/to/your/directory -type f -name '*.sf' -exec sh -c 'basename "{}" .sf | xargs -I % sed "s/|/\t/g" "{}" > "{}.tsv"' \;
-
-# change the tpm column name so its easier to filter 
+# change the column names so its easier to filter 
 find /scratch/shrinivas/Sargassum/Salmon_output/LCC6/quant_files -type f -name '*.tsv' -exec sh -c 'filename=$(basename "{}" .tsv); awk -v filename="$filename" "BEGIN {FS=OFS=\"\t\"} NR==1 {gsub(/NumReads/, \"NumReads_\"filename); gsub(/TPM/, \"TPM_\"filename)} {print}" "{}" > "$filename"_fixed_headers.tsv' \;
-# Now sort it out, since we only care about the name and the tpm (Since in this case they are columns 1 and 4 respectively)
-for file in /path/to/directory/*.tsv; do awk 'BEGIN{FS=OFS="\t"} NR==1{$4 = FILENAME "_TPM"} 1' "$file" > "${file%.tsv}_fixed.tsv"; done
 
 # Extract the counts table my doing simple manipulations
 # Note this part of the script is in python 
