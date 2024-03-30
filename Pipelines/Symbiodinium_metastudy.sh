@@ -106,6 +106,29 @@ done
 
 # The main counts are gonna be in a file called quant.sf
 # Rename the files and move to somewhere better 
+#!/bin/bash
+
+# Set the directory containing the directories
+parent_directory="/path/to/parent_directory"
+
+# Loop over each directory
+for directory in "$parent_directory"/*/; do
+    # Extract the directory name
+    dir_name=$(basename "$directory")
+    
+    # Check if quant.sf file exists in the directory
+    if [ -f "$directory/quant.sf" ]; then
+        # Rename quant.sf to directory_name.tsv
+        mv "$directory/quant.sf" "$directory/$dir_name.tsv"
+        echo "Renamed quant.sf to $dir_name.tsv in $directory"
+    else
+        echo "quant.sf not found in $directory"
+    fi
+done
+
+# Script to move 
+
+
 
 #!/bin/bash
 
