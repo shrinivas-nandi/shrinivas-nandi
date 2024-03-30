@@ -44,7 +44,7 @@ Step 3. Run salmon quant
  salmon index --transcripts cds_from_genomic.fna --index LCC4_index --threads 20
 
 
-Step 3: Actually running salmon 
+Step 3: Actually running salmon (for single end reads)
 # Set the path to the directory containing the FASTQ files
 fastq_dir="/scratch/shrinivas/Symbiodinium_Meta_Analysis/Cleaned_Reads/Gierz_2017/cleaned_reads/"
 
@@ -63,6 +63,43 @@ for fastq_file in "$fastq_dir"/*.fastq; do
     salmon quant --index "$index_path" \
                  --libType A \
                  --unmatedReads "$fastq_file" \
+                 -p 30 \
+                 --output "$output_dir/${filename}_salmon_quant"
+done
+
+# for paired end reads 
+# Set the path to the directory containing the FASTQ files
+fastq_dir="/scratch/shrinivas/Symbiodinium_Meta_Analysis/Cleaned_Reads/Lima_2020"
+
+# Set the index path
+index_path="/scratch/shrinivas/Symbiodinium_Meta_Analysis/Reference_Transcriptomes/Salmon_Indexes/Symbiodinium_microadriaticum_Index"
+
+# Set the output directory
+output_dir="/scratch/shrinivas/Symbiodinium_Meta_Analysis/Cleaned_Reads/Lima_2020/Lima_2020_salmon_output"
+
+# Loop over each paired FASTQ file in the directory
+for fastq_file1 in "$fastq_dir"/*_1.fastq; do
+    # Check if paired-end file exists
+    if [ ! -f "$fastq_file1" ]; then
+        continue  # Skip if the first mate is missing
+    fi
+    
+    # Extract the filename without extension
+    filename=$(basename "$fastq_file1" _1.fastq)
+    
+    # Get the second mate file
+    fastq_file2="$fastq_dir/${filename}_2.fastq"
+    
+    # Check if the second mate file exists
+    if [ ! -f "$fastq_file2" ]; then
+        continue  # Skip if the second mate is missing
+    fi
+    
+    # Run Salmon quantification for each paired-end files
+    salmon quant --index "$index_path" \
+                 --libType A \
+                 --mates1 "$fastq_file1" \
+                 --mates2 "$fastq_file2" \
                  -p 30 \
                  --output "$output_dir/${filename}_salmon_quant"
 done
