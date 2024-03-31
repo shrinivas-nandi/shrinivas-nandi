@@ -269,3 +269,97 @@ G0026270,LG+G4:OG0026325,LG+G4:OG0026836,WAG+F+G4:OG0028086,LG+G4:OG0028225,LG+I
 iqtree -s concatenated.out -spp partitions.txt -bb 2000 -nt AUTO -ntmax 48
 
 
+####################TROUBLE SHOOTING######################
+
+# count the number of log files
+
+find /scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/iqtree_results/log_files -type f -name "*.log" | wc -l
+
+# 2236 log files 
+
+# how many models in best fit models
+wc -l file.tsv
+
+# 2094 rows 
+
+#number of mafft align files 
+
+find -type f -name "*.fasta" | wc -l
+# 2234
+
+# cleaned up the list to remove any missing values 
+
+# make the first one a list
+
+awk -F'\t' '{print $1}' output_file.tsv > candidate_list.txt
+
+## now bring in the files from the other directory 
+
+/scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/concated_tree/candidate_list.txt
+
+# location of fasta files 
+
+
+#!/bin/bash
+
+# Source directory
+source_dir="/scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/aligned_trimmed/phase1/phase2/corrected_headers"
+
+# Destination directory
+destination_dir="/scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/concated_tree/fasta_files"
+
+# Iterate over each entry in candidate_list.txt
+while IFS= read -r entry; do
+    # Extract the first 9 characters from the entry
+    candidate="${entry:0:9}"
+
+    # Search for files in the source directory matching the candidate
+    matching_files=("$source_dir/$candidate"*)
+    
+    # Check if any files were found
+    if [ ${#matching_files[@]} -gt 0 ]; then
+        # Copy matching files to the destination directory
+        cp "${matching_files[@]}" "$destination_dir"
+    fi
+done < candidate_list.
+
+
+# lets take the new counts
+# best_fit_model = 2091
+# number of fasta_files = 2091
+
+# now lets clean this shit up 
+
+sed 's/_msa_align_trim\.fasta\.fasta_iqtree\.log//g' file.tsv > new_file.tsv
+
+
+
+sed 's/Best-fit model//g' new_file.tsv > tmp.tsv
+
+sed 's/chosen according to BIC//g' tmp.tsv > 02_tmp.tsv
+
+awk '{print $1"\t"$2}' 02_tmp.tsv> 03_tmp.txt
+
+awk '{ for (i=1; i<=NF; i++) printf "%s ", $i; printf "\n" }' 02_tmp.tsv > 03_tmp.txt
+
+
+python /home/shrinivas/Programs/AMAS/amas/AMAS.py concat -f fasta -d aa -i /scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/concated_tree/fasta_files/* --concat-part partitions.txt --part-format nexus --concat-out concatenated.out --out-format fasta --cores 40
+
+
+sed 's/_msa_align_trim_header_fixed_phase1_header_fixed_phase2_corrected//g' partitions.txt > tmp_partitions.txt
+
+
+
+sed 's/p.*_/_/g' tmp_partitions.txt > 2_tmp_partitions.txt
+
+
+sed 's/_//g' 2_tmp_partitions.txt > 3_tmp_partitions.txt
+
+
+tr '\n' ' ' < best_fit_model.txt | paste -sd ' ' - > merged_best_fit.txt
+
+
+iqtree -s concatenated.out -spp nexus_file.txt -bb 2000 -nt AUTO -ntmax 48
+
+
+
