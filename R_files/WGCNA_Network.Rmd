@@ -1,0 +1,290 @@
+---
+title: "WGCNA"
+output: html_document
+date: "2024-04-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("genefilter")
+library("DESeq2")
+library("RColorBrewer")
+library("WGCNA")
+library("flashClust")
+library("gridExtra")
+library("ComplexHeatmap")
+library("goseq")
+library("dplyr")
+library("clusterProfiler")
+library("pheatmap")
+library("magrittr")
+library("dendsort")
+#library("goodGenes")
+library("ggplot2")
+library('vegan')
+library('factoextra')
+library('ggfortify')
+library('naniar')
+library('cowplot')
+library("mixOmics")
+library("tidyverse")
+library("RVAideMemoire")
+library("VennDiagram")
+library("broom")
+library("devtools")
+library("tidyr")
+```
+
+
+```{r}
+options(scipen = 999)
+data <-read.csv("WGCNA_input_LCC4.csv", header = TRUE)
+metadata <- read.csv("Lentimonas_metadata.csv")
+```
+
+```{r}
+# check for zero values
+rowSums(dplyr::count(data)) > 0
+
+# Gene filtering 
+filt <- filterfun(pOverA(0.04,0.01)) # goes for like 4 ruled out or whatever
+
+#create filter for the counts data
+gfilt <- genefilter(data, filt)
+
+#identify genes to keep by count filter
+keep <- data[gfilt,]
+
+#identify gene lists
+n.keep <- rownames(keep)
+
+#gene count data filtered in PoverA, P percent of the samples have counts over A
+data_filt <- as.data.frame(data[which(rownames(data) %in% n.keep),])
+
+nrow(data) #Before
+nrow(data_filt) #Afte
+
+```
+All okay
+
+```{r}
+all(rownames(metadata$sample_id) %in% colnames(data_filt))
+all(rownames(metadata$sample_id) == colnames(data_filt))
+```
+All okay and true
+
+
+```{r}
+data_with_row_names <- data_filt[, -1]  # Exclude the column you want to set as row names
+row.names(data_with_row_names) <- data_filt[, 1] 
+
+
+```
+
+
+```{r}
+sampleTree = hclust(dist(data_with_row_names), method = "average");
+plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5, cex.axis = 1.5, cex.main = 2)
+```
+
+
+
+
+
+```{r}
+allowWGCNAThreads(20)
+
+powers <- c(c(1:20), seq(from = 12, to=20, by=2)) #Create a string of numbers from 1 through 10, and even numbers from 10 through 20
+# 
+# # Call the network topology analysis function
+sft <-pickSoftThreshold(data_filt, powerVector = powers, verbose = 5)
+
+
+# pLot out softthreading 
+sizeGrWindow(9, 5)
+par(mfrow = c(1,2));
+cex1 = 0.9;
+# # # Scale-free topology fit index as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     xlab="Soft Threshold (power)",ylab="Scale Free Topology Model Fit,signed R^2",type="n",
+     main = paste("Scale independence"));
+text(sft$fitIndices[,1], -sign(sft$fitIndices[,3])*sft$fitIndices[,2],
+     labels=powers,cex=cex1,col="red");
+# # # this line corresponds to using an R^2 cut-off
+abline(h=0.8,col="red")
+# # # Mean connectivity as a function of the soft-thresholding power
+plot(sft$fitIndices[,1], sft$fitIndices[,5],
+     xlab="Soft Threshold (power)",ylab="Mean Connectivity", type="n",
+     main = paste("Mean connectivity"))
+text(sft$fitIndices[,1], sft$fitIndices[,5], labels=powers, cex=cex1,col="red")
+
+
+
+```
+
+Pick 10 as the softpower
+```{r}
+picked_power = 10
+temp_cor <- cor
+datExpr <- data_with_row_names
+cor <- WGCNA::cor     # Force it to use WGCNA cor function (fix a namespace conflict issue)
+netwk <- blockwiseModules(datExpr,                         # <= input here
+                          # == Adjacency Function ==
+                          power = picked_power,               # <= power here
+                          networkType = "unsigned",
+                          
+                          # == Tree and Block Options ==
+                          deepSplit = 2,
+                          pamRespectsDendro = F,
+                          # detectCutHeight = 0.75,
+                          minModuleSize = 20,                  
+                          maxBlockSize = 4000,
+                          
+                          # == Module Adjustments ==
+                          reassignThreshold = 0,
+                          mergeCutHeight = 0.25,
+                          
+                          # == TOM == Archive the run results in TOM file (saves time) but it doesn't save a file
+                          saveTOMs = F,
+                          saveTOMFileBase = "ER",
+                          
+                          # == Output Options
+                          numericLabels = F,
+                          verbose = 3)
+
+cor <- temp_cor     # Return cor function to original nam
+
+
+```
+
+```{r}
+mergedColors = netwk$colors
+# Plot the dendrogram and the module colors underneath
+#pdf("blockwise_module_colors.pdf")
+plot <- plotDendroAndColors(
+  netwk$dendrograms[[1]],
+  mergedColors[netwk$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE,
+  hang = 0.03,
+  addGuide = TRUE,
+  guideHang = 0.05 )
+
+
+table(mergedColors)
+plot
+
+```
+
+```{r}
+module_df <- data.frame(
+  Metabolite = names(netwk$colors),
+  colors = labels2colors(netwk$colors))
+```
+
+
+```{r}
+MEs <- moduleEigengenes(data_with_row_names, mergedColors)$eigengenes
+
+# Reorder modules so similar modules are next to each other
+MEs <- orderMEs(MEs)
+module_order = names(MEs) %>% gsub("ME","", .)
+
+# Add Sample names
+MEs0 <- MEs
+MEs0$Sample.ID = row.names(MEs)
+
+# tidy & plot data
+mME = MEs0 %>%
+  pivot_longer(-Sample.ID) %>%
+  mutate(
+    name = gsub("ME", "", name),
+    name = factor(name, levels = module_order)
+  )
+
+mME %>% ggplot(., aes(x=Sample.ID, y=name, fill=value)) +
+  geom_tile() +
+  theme_bw() +
+  scale_fill_gradient2(
+    low = "blue",
+    high = "red",
+    mid = "white",
+    midpoint = 0,
+    limit = c(-1,1)) +
+  theme(axis.text.x = element_text(angle=90)) +
+  labs(title = "Module-Sample Relationships", y = "Modules", fill="corr")
+
+```
+
+
+#Network analsysi
+```{r}
+
+picked_power=10 #Set softPower to 10 (10 was just before the plateau in the graph with abline at 0.8)
+adjacency_metabolites=adjacency(datExpr, power=picked_power,type="signed") #Calculate adjacency
+TOM_metabolites = TOMsimilarity(adjacency_metabolites,TOMType = "signed") #Translate adjacency into topological overlap matrix
+dissTOM_metabolite = 1-TOM_metabolites #Calculate dissimilarity in TOM
+
+### Clustering using TOM
+##Form distance matrix
+geneTree_5572_METAL = flashClust(as.dist(dissTOM_metabolite), method="average")
+```
+
+
+```{r}
+geneTree_5572_METAL = flashClust(as.dist(dissTOM_metabolite), method="average")
+
+#We will now plot a dendrogram of genes. Each leaf corresponds to a gene, branches grouping together densely are interconnected, highly co-expressed genes.
+plot(geneTree_5572_METAL, xlab="", sub="", main= "Gene Clustering on TOM-based dissimilarity", labels= FALSE,hang=0.04)
+
+plot(geneTree_5572_METAL, xlab="", sub="", main= "Gene Clustering on TOM-based dissimilarity", labels= FALSE,hang=0.04)
+dev.off()
+```
+
+
+
+```{r}
+#Module identification is essentially cutting the branches off the tree in the dendrogram above. We like large modules, so we set the **minimum module size** relatively high, so we will set the minimum size at 30. I chose 30 as it is the default value chosen by most studies using WGCNA.
+####We chose 10 because algae are smaller than Mcap 
+minModuleSize = 30
+dynamicMods_5572_METAL = cutreeDynamic(dendro = geneTree_5572_METAL, distM = dissTOM_metabolite,
+                                      deepSplit = 2, pamRespectsDendro = FALSE,
+                                      minClusterSize = minModuleSize)
+table(dynamicMods_5572_METAL) #list modules and respective sizes
+###Change minmodulesize around and see which result looks best
+
+#Module 0 is reserved for unassigned genes. The are other modules will be listed largest to smallest.
+
+#Plot the module assignment under the gene dendrogram
+dynamicColors_5572_METAL = labels2colors(dynamicMods_5572_METAL) 
+unique_values <- unique(dynamicColors_5572_METAL)
+unique_values
+```
+
+
+```{r}
+TOM_5572_METAL = TOMsimilarityFromExpr(datExpr, power = 7);
+modules_5572_METAL = c("greenyellow", "black")
+
+probes_5572_METAL = names(datExpr)
+inModule_5572_METAL = is.finite(match(dynamicColors_5572_METAL, modules_5572_METAL));
+modProbes_5572_METAL = probes_5572_METAL[inModule_5572_METAL]
+```
+
+
+```{r}
+modTOM_5572_METAL = TOM_5572_METAL[inModule_5572_METAL, inModule_5572_METAL];
+dimnames(modTOM_5572_METAL) = list(modProbes_5572_METAL, modProbes_5572_METAL)
+# Export the network into edge and node list files Cytoscape can read
+cyt_5572_METAL = exportNetworkToCytoscape(modTOM_5572_METAL,
+                                         edgeFile = paste("CytoscapeInput-edges-5572_METAL", paste(modules_5572_METAL, collapse="-"), ".txt", sep=""),
+                                         nodeFile = paste("CytoscapeInput-nodes-5572_METAL", paste(modules_5572_METAL, collapse="-"), ".txt", sep=""),
+                                         weighted = TRUE,
+                                         threshold = 0.5,
+                                         nodeNames = modProbes_5572_METAL,
+                                         #altNodeNames = modGenes_5572_METAL,
+                                         nodeAttr = dynamicColors_5572_METAL[inModule_5572_METAL])
+```
