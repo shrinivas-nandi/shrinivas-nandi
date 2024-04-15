@@ -173,70 +173,39 @@ done < "$input_tsv"
 ## So i delete everything after ___
 
 #!/bin/bash
+# Define the directory containing the FASTA files
+sequence_directory="/scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/SAR_tree_20_2_24/tree_building/fasta_for_build"
 
-# Directory containing the sequence files
-sequence_directory="/scratch/shrinivas/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/aligned_trimmed"
-
-# Iterate through sequence files
+# Iterate through the FASTA files in the specified directory
 for sequence_file in "$sequence_directory"/*.fasta; do
-    # Create a new file to store modified sequences with the "_header_fixed_phase1" suffix
-    new_file="${sequence_file%.fasta}_header_fixed_phase1.fasta"
+    # Create a new file to store modified sequences
+    new_file="${sequence_file%.fasta}_modified.fasta"
     
-    # Write modified sequences to the new file
+    # Process each line in the FASTA file
     while IFS= read -r line; do
-        # Check if the line is a sequence header
+        # Check if the line is a header line (starts with ">")
         if [[ $line =~ ^\> ]]; then
-            # Find the position of the third "_" in the header
-            position=$(echo "$line" | grep -b -o '___' | cut -d: -f1 | head -n 1)
-            
-            # If "___" is found, truncate the header
-            if [ "$position" ]; then
-                truncated_header="${line:0:$position-1}"
+            # Check if the header contains the string "___"
+            if [[ $line == *___* ]]; then
+                # Truncate the header at the position of "___"
+                truncated_header="${line%%___*}"
                 echo "$truncated_header" >> "$new_file"
-            else
-                echo "$line" >> "$new_file"
+            # Check if the header starts with ">g"
+            elif [[ $line == ">g"* ]]; then
+                # Keep only the first two characters of the header
+                short_header="${line:0:2}"
+                echo "$short_header" >> "$new_file"
+            else:
+                # Otherwise, truncate the header to the first 8 characters
+                short_header=$(echo "$line" | cut -c 1-15)
+                echo "$short_header" >> "$new_file"
             fi
-        else
-            # If it's not a header, simply write the line to the new file
+        else:
+            # If it's not a header line, write it as-is
             echo "$line" >> "$new_file"
         fi
     done < "$sequence_file"
 done
-
-# alterante if many files, then worth parallelizing the script 
-#!/bin/bash
-
-# Function to process each FASTA file
-process_file() {
-    file="$1"
-    output_file="${file%.fasta}_modified.fasta"
-    
-    # Process each line in the file
-    while IFS= read -r line; do
-        # Check if the line is a header line
-        if [[ $line =~ ^\>.+ ]]; then
-            # Check if the header starts with "g"
-            if [[ $line =~ ^\>g ]]; then
-                # Keep the first two characters of the header
-                header="${line:0:2}"
-                echo "$header" >> "$output_file"
-            else
-                # Otherwise, truncate the header to the first 8 characters
-                header=$(echo "$line" | cut -c 1-8)
-                echo "$header" >> "$output_file"
-            fi
-        else
-            # Otherwise, echo the line as is
-            echo "$line" >> "$output_file"
-        fi
-    done < "$file"
-}
-
-# Export the function to make it available to parallel
-export -f process_file
-
-# Run the script in parallel for each FASTA file
-find . -maxdepth 1 -type f -name "*.fasta" | parallel -j 20 process_file {}
 
 
 AMAS
@@ -330,20 +299,19 @@ done < candidate_list.
 
 # now lets clean this shit up 
 
-sed 's/_msa_align_trim\.fasta\.fasta_iqtree\.log//g' file.tsv > new_file.tsv
+##### Now go ahead in the actual tsv file and fix it 
+sed 's/_msa_align_trim\.fasta\.fasta_iqtree\.log//g' repeat_removed.tsv > new_file.tsv
 
 
+awk '{gsub(/ *: */, ":", $0); gsub(/ +/, " ", $0); print $0}' 03_tmp.txt > 04_tmp.txt
 
-sed 's/Best-fit model//g' new_file.tsv > tmp.tsv
+awk '{print $0 ","}' 04_tmp.txt > 05_tmp.txt
 
-sed 's/chosen according to BIC//g' tmp.tsv > 02_tmp.tsv
+awk '{gsub(/ *: */, ":", $0); gsub(/ +/, " ", $0); print $0}' 05_tmp.txt > 06_tmp.txt
 
-awk '{print $1"\t"$2}' 02_tmp.tsv> 03_tmp.txt
+sed 's/ ,/,/g' 06_tmp.txt > 07_tmp.txt
 
-awk '{ for (i=1; i<=NF; i++) printf "%s ", $i; printf "\n" }' 02_tmp.tsv > 03_tmp.txt
-
-
-python /home/shrinivas/Programs/AMAS/amas/AMAS.py concat -f fasta -d aa -i /scratch/shrinivas/Paulinella/Paulinella_Metagenome/Tree_Analysis/Cyanobacteria_Genomes/concated_tree/fasta_files/* --concat-part partitions.txt --part-format nexus --concat-out concatenated.out --out-format fasta --cores 40
+tr '\n' ' ' < 07_tmp.txt > best_fit_models.txt
 
 
 sed 's/_msa_align_trim_header_fixed_phase1_header_fixed_phase2_corrected//g' partitions.txt > tmp_partitions.txt
