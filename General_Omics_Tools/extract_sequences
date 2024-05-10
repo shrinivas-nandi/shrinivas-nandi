@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Directory containing FASTA files
+output_file="extracted_sequences.fa"
+
+# Remove the existing output file if it exists
+[ -e "$output_file" ] && rm "$output_file"
+
+for file in /scratch/shrinivas/Paulinella/Paulinella_Metagenome/Paulinella_Genomes/Proteome/ovalis_only_genes/Potential_HGT/fasta_files/*.fa; do
+  /home/timothy/programs/seqkit_v2.3.1/seqkit sort -l -r -w 0 "$file" | head -n 2 | awk -v filename="$(basename "$file")" 'NR==1 {print ">" filename "_" $1} NR==2 {print $0}' >> "$output_file"
+done
