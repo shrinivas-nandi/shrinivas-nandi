@@ -1,0 +1,204 @@
+---
+title: "Stacked_barchart"
+output: html_document
+date: "2024-05-01"
+---
+Read in datasets
+```{r}
+df <- read.csv('/Users/Shrini/Desktop/Stacked_bar_plot/LFQ_Supplemental_Table_S12.csv')
+
+
+df_TP0 <- df[, c('Species', 'Pathway','Total.Proteins.detected', 'TP0_Increased.abundance', 'TP0_Decreased.Abundance'  )]
+df_TP1 <- df[, c('Species', 'Pathway', 'Total.Proteins.detected', 'TP1_Increased.abundance', 'TP1_Decreased.Abundance')]
+df_TP2 <- df[, c('Species', 'Pathway', 'Total.Proteins.detected', 'TP2_Increased.abundance', 'TP2_Decreased.Abundance')]
+```
+
+
+Convert a the decreased to negatives 
+```{r}
+df_TP0$TP0_Decreased.Abundance <- -df_TP0$TP0_Decreased.Abundance
+df_TP1$TP1_Decreased.Abundance <- -df_TP1$TP1_Decreased.Abundance
+df_TP2$TP2_Decreased.Abundance <- -df_TP2$TP2_Decreased.Abundance
+
+```
+
+```{r}
+# Plot for TP0
+plot_TP0 <- ggplot(df_TP0, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP0_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP0_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP0",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "none") +  # Remove legend for individual plots
+  ylim(-200, 100)  # Set y-axis limits
+
+# Plot for TP1
+plot_TP1 <- ggplot(df_TP1, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP1_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP1_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP1",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "none") +  # Remove legend for individual plots
+  ylim(-200, 100)  # Set y-axis limits
+
+# Plot for TP2
+plot_TP2 <- ggplot(df_TP2, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP2_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP2_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP2",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "none") +  # Remove legend for individual plots
+  ylim(-200, 100)  # Set y-axis limits
+
+# Arrange the plots horizontally
+combined_plot <- grid.arrange(plot_TP0, plot_TP1, plot_TP2, ncol = 3)
+
+# Add a common legend
+combined_plot
+
+
+```
+
+```{r}
+# Reorder levels of "Species" variable
+df_TP0$Species <- factor(df_TP0$Species, levels = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))
+df_TP1$Species <- factor(df_TP1$Species, levels = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))
+df_TP2$Species <- factor(df_TP2$Species, levels = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))
+
+# Plot for TP0
+plot_TP0 <- ggplot(df_TP0, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP0_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP0_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP0",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "none") +  # Remove legend for individual plots
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))  # Set x-axis order
+
+# Plot for TP1
+plot_TP1 <- ggplot(df_TP1, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP1_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP1_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP1",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "none") +  # Remove legend for individual plots
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))  # Set x-axis order
+
+# Plot for TP2
+plot_TP2 <- ggplot(df_TP2, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP2_Increased.abundance), position = "stack", stat = "identity") +
+  geom_bar(aes(y = TP2_Decreased.Abundance), position = "stack", stat = "identity") +
+  labs(title = "Protein Distribution TP2",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "topright") +  # Remove legend for individual plots
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata (Host)", "Stylophora pistilliata"))  # Set x-axis order
+
+# Arrange the plots horizontally
+combined_plot <- grid.arrange(plot_TP0, plot_TP1, plot_TP2, ncol = 3)
+combined_plot
+# Add a common legend
+#combined_plot + guides(fill = guide_legend(title = "Pathway", position = "right"))  # Include legend from one of the plots
+
+
+```
+
+```{r}
+# Plot for TP0
+plot_TP0 <- ggplot(df_TP0, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP0_Increased.abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  geom_bar(aes(y = TP0_Decreased.Abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  labs(title = "Protein Distribution TP0",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(color = "black", size = 0.5),  # Solid x and y axes
+        panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank()) +  # Remove minor grid lines
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "topright") +  # Adjust legend position
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata ", "Stylophora pistilliata"))  # Set x-axis order
+
+# Plot for TP1
+plot_TP1 <- ggplot(df_TP1, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP1_Increased.abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  geom_bar(aes(y = TP1_Decreased.Abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  labs(title = "Protein Distribution TP1",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(color = "black", size = 0.5),  # Solid x and y axes
+        panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank()) +  # Remove minor grid lines
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "topright") +  # Adjust legend position
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata ", "Stylophora pistilliata"))  # Set x-axis order
+
+# Plot for TP2
+plot_TP2 <- ggplot(df_TP2, aes(fill = Pathway, x = Species)) +
+  geom_bar(aes(y = TP2_Increased.abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  geom_bar(aes(y = TP2_Decreased.Abundance), position = position_stack(), stat = "identity", width = 0.5) +
+  labs(title = "Protein Distribution TP2",
+       x = "Species",
+       y = "Number of proteins with |FC| > 0.5") +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "lightcoral", "lightgreen", "lightyellow", "lightsalmon", "lightcyan")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(color = "black", size = 0.5),  # Solid x and y axes
+        panel.grid.major = element_blank(),  # Remove major grid lines
+        panel.grid.minor = element_blank()) +  # Remove minor grid lines
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  theme(legend.position = "topright") +  # Adjust legend position
+  ylim(-200, 100) +  # Set y-axis limits
+  scale_x_discrete(limits = c("Montipora capitata", "Acropora hyacinthus", "Porites lobata ", "Stylophora pistilliata"))  # Set x-axis order
+
+# Arrange the plots horizontally
+combined_plot <- grid.arrange(plot_TP0, plot_TP1, plot_TP2, ncol = 3)
+ggsave("combined_plot.pdf", combined_plot, width = 12, height = 6)
+
+# Add a common legend
+
+
+```
+
+```{r}
+
+```
+
