@@ -604,6 +604,11 @@ cut -f1,15,12 output_file.tsv > sargassum_blobtools_blast.tsv
 
 
 
+###### Jellyfish to estimate genome size from reads #######
+
+/home/timothy/programs/jellyfish-2.3.0/bin/jellyfish count --mer-len 21 -s 80 --threads 70 --output 21_mer_out -C /scratch/shrinivas/Sargassum/Dominican_Republic/cleaned_reads/S1.errorcorr_R1.fastq /scratch/shrinivas/Sargassum/Dominican_Republic/cleaned_reads/S1.errorcorr_R2.fastq
+
+
 
 
 
