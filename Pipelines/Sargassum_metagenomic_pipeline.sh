@@ -610,5 +610,73 @@ cut -f1,15,12 output_file.tsv > sargassum_blobtools_blast.tsv
 
 
 
+# get all the headers of interest in 
+grep 'Eukaryota-undef' blob_db_all_mixed.blobDB.table.txt | cut -f1 > blobtools_sargassum_headers.txt
+
+
+# compare the values against tiara
+grep -F -f blobtools_sargassum_headers.txt tiara_output_contigs > extracted_rows.txt
+
+# so overall tiara had a very low hit rate from the main contigs file. Giving a hit of 
+#87,541 out of 281,334 contigs. So around 40%. 
+# used the tiara contigs to just verify output and removed any bacterial but not to confirm eukaryote
+
+# pandas script to filter out 
+
+import pandas as pd 
+tiara = pd.read_csv('/Users/Shrini/Desktop/downstream/putative_sargassum_seq/tiara_output_contigs.tsv', sep ='\t')
+blob = pd.read_csv('/Users/Shrini/Desktop/downstream/putative_sargassum_seq/blobtools_sargassum_headers.tsv', sep ='\t')
+df = pd.merge(blob, tiara, on="sequence_id")
+
+# Count the occurrences of "Bacteria" and "Eukarya" in the 'class_fst_stage' column
+bacteria_count = df['class_fst_stage'].str.contains('Bacteria', case=False, na=False).sum()
+eukarya_count = df['class_fst_stage'].str.contains('Eukarya', case=False, na=False).sum()
+
+# Print the counts
+print(f"Number of Bacteria: {bacteria_count}")
+print(f"Number of Eukarya: {eukarya_count}")
+
+bacteria_subset = df[df['class_fst_stage'].str.contains('Bacteria', case=False, na=False)]
+
+
+### remove these bacterial rows
+
+sequence_ids_to_remove = bacteria_subset.iloc[:, 0]
+
+# Remove the rows in the blobtools_headers dataframe where the 'header' column matches the sequence_ids from bacteria_subset
+blobtools_filtered = blob[~blob['sequence_id'].isin(sequence_ids_to_remove)]
+
+blobtools_filtered.to_csv('/Users/Shrini/Desktop/downstream/putative_sargassum_seq/blobtools_filtered.txt')
+
+
+### now back in bash#####
+
+
+
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep -f euk_headers.txt /scratch/shrinivas/Sargassum/Dominican_Republic/S1_bins/final.contigs.fa -o tiara_euks_contigs.fasta
+
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep -f  mit_headers.txt /scratch/shrinivas/Sargassum/Dominican_Republic/S1_bins/final.contigs.fa -o tiara_mit_contigs.fasta
+
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep -f  plastid_headers.txt /scratch/shrinivas/Sargassum/Dominican_Republic/S1_bins/final.contigs.fa -o tiara_plastid_contigs.fasta
+
+
+  #Enzymes of preliminary interest
+  Glycosyl Hydrolase:
+GH29
+GH95
+GH141
+GH107
+GH117
+GH31
+
+Sulfatase:
+S1_16
+S1_17
+
+
+/home/timothy/programs/ncbi-blast-2.13.0+/bin/blastn -query barrnap_hits.fasta -db /scratch/databases/ncbi/2022_07/nt -evalue 1e-5 -max_hsps 20 -outfmt "6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore staxids sscinames stitle sskingdoms" -num_threads 50 -out 18SrRNA_blast.tsv
+
+
+
 
 
