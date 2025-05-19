@@ -1,3 +1,2 @@
-This folder will contain scripts and analysis for the SCTLD project. 
-Ranging from metagenomics to metaproteomic analysis. 
-The goals of this project are to identify causative vectors of SCTLD and the downstream impact to the proteome and subsequent interactions between the dinoflagellate and cnidarian host in the coral Diplora labarynthiformis
+This folder will contain scripts and analysis for the SCTLD project which will be submitted for publication. 
+The codes made available here is a cleaned up version of the original analysis. Minimal changes should be needed to run this workflow for any analyses or re-analyses. 
