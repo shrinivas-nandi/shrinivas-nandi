@@ -41,102 +41,161 @@ hmmscan \
   > allMAGs_vs_dbCAN.log
 
 ############################## Assess competeing models ##############################
+'''
+This would mean decent coverage of the hmmer. dbCan recommends 0.35 so I will stick to that number. 
+Basically, if my odmain maps to atelast 35% of the hmmer domain. 
+Columns to be used. 
+Interpeting some the coordinates
+tlen --> lenght of hmm
+qlen --> lenght of my full protein 
+hmm_cord --> where my hmm aligned to the db hmm 
+pos: 1                                            338
+     |-----------------------------------------------|
+              11                   255
+              |---------------------|
+                   hmm_from/to
 
-grep -v '^#' allMAGs_vs_dbCAN.domtblout | awk '
-{
-  print $4, $1, $13, $14, $7, $18, $19, $16, $17
-}' OFS="\t" > domtblout.parsed.tsv
+ali_cord --> where on my complete sequence is this domain 
 
+Your sequence (qlen=393):
+pos: 1                                                393
+     |--------------------------------------------------|
+               50                        295
+               |-------------------------|
+                      ali_from/to
+                      
+env_cord --> slightly longer region on my sequence 
 
-#!/usr/bin/env python3
+Your sequence (qlen=393):
+pos: 1                                                393
+     |--------------------------------------------------|
+            45                            315
+            |-----------------------------|
+                      env_from/to
+
+               50                   295
+               |---------------------|
+                    ali_from/to (sits inside env)
+                    
+for our formula I will first calculate coverage 
+
+# lenght of my domain / lenght of model 
+(hmm_to - hmm_from + 1) / tlen
+'''
+
+awk '!/^#/ {
+    domain_coverage = ($17 - $16 + 1) / $3
+    print $0, domain_coverage
+}' prokaryotic_MAGs_vs_dbCAN.domtblout >> prokaryotic_MAGs_vs_dbCAN.domtblout.tsv
+# cut off used 0.60 quite stringent 
+
+################ Compare and look for overlapping domains on the same proteins ######################
+import pandas as pd
 import sys
-from collections import defaultdict
 
-OVERLAP_FRAC = 0.30
-MIN_COVERAGE = 0.35
+# Column positions (0-indexed)
+COL_QUERY    = 3   # protein name
+COL_IEVALUE  = 12  # i_evalue
+COL_ALI_FROM = 17  # ali_from
+COL_ALI_TO   = 18  # ali_to
+COL_COVERAGE = 22  # domain_coverage
 
-# overlap function: look for coordinates. are domains on the same part of the protein i.e., is this an hmm clash
-def overlap(a_start, a_end, b_start, b_end):
-    ov = max(0, min(a_end, b_end) - max(a_start, b_start) + 1)
-    a_len = a_end - a_start + 1
-    b_len = b_end - b_start + 1
-    return ov / min(a_len, b_len) if min(a_len, b_len) > 0 else 0
 
-proteins = defaultdict(list)
+def calc_overlap(ali_from1, ali_to1, ali_from2, ali_to2):
+    overlap_start = max(ali_from1, ali_from2)
+    overlap_end   = min(ali_to1, ali_to2)
+    overlap_len   = max(0, overlap_end - overlap_start + 1)
 
-with open(sys.argv[1]) as f:
-    for line in f:
-        (
-            protein, hmm, ie, score, seqlen,
-            s_start, s_end, h_start, h_end
-        ) = line.strip().split("\t")
+    shorter = min(ali_to1 - ali_from1 + 1, ali_to2 - ali_from2 + 1)
+    return overlap_len / shorter
 
-        hmm_len = abs(int(h_end) - int(h_start)) + 1 # generate hmm coverage feature
-        coverage = hmm_len / int(seqlen) # calculate the coverage
 
-        if coverage < MIN_COVERAGE:
-            continue  # drop weak partial matches early
-
-        proteins[protein].append({
-            "hmm": hmm,
-            "ie": float(ie),
-            "score": float(score),
-            "start": int(s_start),
-            "end": int(s_end),
-            "coverage": coverage
-        })
-
-def resolve(hits):
+def resolve_overlaps(df, overlap_threshold=0.30):
     kept = []
-    used = set()
 
-    for i, h1 in enumerate(hits):
-        if i in used:
+    for protein, group in df.groupby(COL_QUERY):
+        group = group.reset_index(drop=True)
+
+        if len(group) == 1:
+            kept.append(group)
             continue
 
-        group = [i]
-        for j, h2 in enumerate(hits):
-            if i != j:
-                if overlap(h1["start"], h1["end"], h2["start"], h2["end"]) >= OVERLAP_FRAC:
-                    group.append(j)
+        to_drop = set()
+        rows = list(group.iterrows())
 
-        for g in group:
-            used.add(g)
+        for i, (idx1, row1) in enumerate(rows):
+            if idx1 in to_drop:
+                continue
+            for j, (idx2, row2) in enumerate(rows):
+                if i >= j:
+                    continue
+                if idx2 in to_drop:
+                    continue
 
-        best = min(
-            (hits[g] for g in group),
-            key=lambda x: (x["ie"], -x["score"])
-        )
-        kept.append(best)
+                overlap = calc_overlap(
+                    row1[COL_ALI_FROM], row1[COL_ALI_TO],
+                    row2[COL_ALI_FROM], row2[COL_ALI_TO]
+                )
 
-    return kept
+                if overlap >= overlap_threshold:
+                    # lower i_evalue wins
+                    if row1[COL_IEVALUE] < row2[COL_IEVALUE]:
+                        to_drop.add(idx2)
+                    elif row2[COL_IEVALUE] < row1[COL_IEVALUE]:
+                        to_drop.add(idx1)
+                    else:
+                        # tie — higher coverage wins
+                        if row1[COL_COVERAGE] >= row2[COL_COVERAGE]:
+                            to_drop.add(idx2)
+                        else:
+                            to_drop.add(idx1)
 
-print("protein\thmm\ti_evalue\tscore\tcoverage\tstart\tend")
+        kept.append(group[~group.index.isin(to_drop)])
 
-for protein, hits in proteins.items():
-    for h in resolve(hits):
-        print(
-            protein,
-            h["hmm"],
-            h["ie"],
-            h["score"],
-            f"{h['coverage']:.2f}",
-            h["start"],
-            h["end"],
-            sep="\t"
-        )
-
-python resolve_domains_with_coverage.py domtblout.parsed.tsv > resolved_domains.tsv
+    return pd.concat(kept).reset_index(drop=True)
 
 
-#### select gh29 families###
-# cut offs: coverage >= 0.35 (need to calculate on my own), 
-awk '
-$1 == "GH29" && $0 !~ /^#/ {
-  hmm_len = $3
-  cov = ($17 - $16 + 1) / hmm_len
-  if (cov >= 0.35) print $4
-}' allMAGs_vs_dbCAN.domtblout | sort -u > GH29_proteins.txt
+def main(input_file, output_file):
+    df = pd.read_csv(input_file, sep="\t", header=None)
+
+    # convert numeric columns
+    for col in [COL_IEVALUE, COL_ALI_FROM, COL_ALI_TO, COL_COVERAGE]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    print(f"Total rows before: {len(df)}")
+
+    df_resolved = resolve_overlaps(df, overlap_threshold=0.30)
+
+    print(f"Total rows after:  {len(df_resolved)}")
+    print(f"Rows removed:      {len(df) - len(df_resolved)}")
+
+    df_resolved.to_csv(output_file, sep="\t", index=False, header=False)
+    print(f"Output written to: {output_file}")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python resolve_overlaps.py input.tsv output.tsv")
+        sys.exit(1)
+    main(sys.argv[1], sys.argv[2])
+
+######## sanity check to see how many were dropped ##############
+for enzyme in GH29 GH95 GH141 GH107 GH168; do
+    count1=$(awk -v e="$enzyme" '$1 ~ e {print $4}' prokaryotic_MAGs_vs_dbCAN.domtblout.tsv | sort -u | wc -l)
+    count2=$(awk -v e="$enzyme" '$1 ~ e {print $4}' coverage_60_percent_domtblout.tsv | sort -u | wc -l)
+    count3=$(awk -v e="$enzyme" '$1 ~ e {print $4}' domain_resolved_coverage_domtblout.tsv | sort -u | wc -l)
+    echo "$enzyme  beforeanyfiltering: $count1  aftercoverage: $count2 coverage&overlapcleaned: $count3"
+
+'''
+GH29  beforeanyfiltering: 859  aftercoverage: 789 coverage&overlapcleaned: 789
+GH95  beforeanyfiltering: 476  aftercoverage: 396 coverage&overlapcleaned: 390
+GH141  beforeanyfiltering: 307  aftercoverage: 247 coverage&overlapcleaned: 247
+GH107  beforeanyfiltering: 41  aftercoverage: 32 coverage&overlapcleaned: 32
+GH168  beforeanyfiltering: 131  aftercoverage: 123 coverage&overlapcleaned: 123
+'''
+
+
+
 
 
 
