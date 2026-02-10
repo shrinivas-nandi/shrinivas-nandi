@@ -24,7 +24,7 @@ singularity exec \
 trimal -automated1 -in gtdbtk.bac120.user_msa.fasta.gz -out gtdbtk.bac120.user_msa.aligned.trimmed.fa
 
 #iqtree2
-/home/timothy/programs/iqtree-1.6.12-Linux/bin/iqtree -s /scratch/shrinivas/Sargassum/Degradation_experiment/prokaryotic_genomes/phylogeny/align/gtdbtk.bac120.user_msa.aligned.trimmed.fa -m TEST -bb 1000 -nt AUTO -pre /scratch/shrinivas/Sargassum/Degradation_experiment/prokaryotic_genomes/phylogeny/align/iqtree_res
+/home/timothy/programs/iqtree-1.6.12-Linux/bin/iqtree -s /scratch/shrinivas/Sargassum/meta-analysis/naive_atlas_output/genomes/prokayotic_genomes/gtdbtk_identify/mafft_output/align/gtdbtk.bac120.user_msa.aligned.trimmed.fa -m TEST -bb 1000 -nt AUTO -pre /scratch/shrinivas/Sargassum/meta-analysis/naive_atlas_output/genomes/prokayotic_genomes/gtdbtk_identify/mafft_output/align/iqtree_results
 
 #####################Hmmer CAZyme set####################
 """selected options 
@@ -192,8 +192,81 @@ GH95  beforeanyfiltering: 476  aftercoverage: 396 coverage&overlapcleaned: 390
 GH141  beforeanyfiltering: 307  aftercoverage: 247 coverage&overlapcleaned: 247
 GH107  beforeanyfiltering: 41  aftercoverage: 32 coverage&overlapcleaned: 32
 GH168  beforeanyfiltering: 131  aftercoverage: 123 coverage&overlapcleaned: 123
+
+1,581 highly likely cazymes in 284 mags from 1338 ~ 21% of MAGs
 '''
 
+###### repeat for alginate lyases #######
+for enzyme in PL5 PL6 PL7 PL8 PL14 PL15 PL17 PL18 PL31 PL32 PL34 PL36 PL39 PL41; do
+    count1=$(awk -v e="$enzyme" '$1 ~ e {print $4}' prokaryotic_MAGs_vs_dbCAN.domtblout.tsv | sort -u | wc -l)
+    count2=$(awk -v e="$enzyme" '$1 ~ e {print $4}' coverage_60_percent_domtblout.tsv | sort -u | wc -l)
+    count3=$(awk -v e="$enzyme" '$1 ~ e {print $4}' use_this_domain_resolved_coverage_domtblout.tsv | sort -u | wc -l)
+    echo "$enzyme  beforeanyfiltering: $count1  aftercoverage: $count2 coverage&overlapcleaned: $count3"
+done
+
+'''
+PL5  beforeanyfiltering: 26  aftercoverage: 24 coverage&overlapcleaned: 23
+PL6  beforeanyfiltering: 730  aftercoverage: 670 coverage&overlapcleaned: 665
+PL7  beforeanyfiltering: 1089  aftercoverage: 1048 coverage&overlapcleaned: 1048
+PL8  beforeanyfiltering: 41  aftercoverage: 40 coverage&overlapcleaned: 39
+PL14  beforeanyfiltering: 207  aftercoverage: 202 coverage&overlapcleaned: 198
+PL15  beforeanyfiltering: 143  aftercoverage: 142 coverage&overlapcleaned: 141
+PL17  beforeanyfiltering: 415  aftercoverage: 413 coverage&overlapcleaned: 399
+PL18  beforeanyfiltering: 47  aftercoverage: 47 coverage&overlapcleaned: 47
+PL31  beforeanyfiltering: 88  aftercoverage: 83 coverage&overlapcleaned: 81
+PL32  beforeanyfiltering: 0  aftercoverage: 0 coverage&overlapcleaned: 0
+PL34  beforeanyfiltering: 33  aftercoverage: 32 coverage&overlapcleaned: 32
+PL36  beforeanyfiltering: 168  aftercoverage: 168 coverage&overlapcleaned: 4
+PL39  beforeanyfiltering: 135  aftercoverage: 78 coverage&overlapcleaned: 13
+PL41  beforeanyfiltering: 43  aftercoverage: 38 coverage&overlapcleaned: 2
+
+3034 unique alginate lyases 
+distributed in over 730 pMAGs (~ 54%)
+'''
+#################################### pull out the whole protein sequence ##############################
+# extract proteins based on protein name 
+awk '{print $4}' fucoidanases.tsv | sort -u > fucoidanase_protein_names.txt
+
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep -f fucoidanase_protein_names.txt /scratch/shrinivas/Sargassum/meta-analysis/predicted_proteins/prokaryotic_proteome/prokaryotic_proteome.faa > fucoidanases_full_protein.fasta
+
+# repeat for alginates
+awk '{print $4}' alginates.tsv | sort -u > alginate_protein_names.txt
+
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep -f alginate_protein_names.txt /scratch/shrinivas/Sargassum/meta-analysis/predicted_proteins/prokaryotic_proteome/prokaryotic_proteome.faa > alginate_lyases_full_protein.fasta
+
+# extract catalytic activity using the ali to ali for each protein 
+## we will use seqio to extract just the catalytic domain 
+
+from Bio import SeqIO
+import pandas as pd
+
+df = pd.read_csv("/scratch/shrinivas/Sargassum/meta-analysis/predicted_proteins/prokaryotic_proteome/cazyme_prokaryotes/fucoidanases/fucoidanases.tsv", sep="\t", header=None)
+seqs = SeqIO.index("/scratch/shrinivas/Sargassum/meta-analysis/predicted_proteins/prokaryotic_proteome/cazyme_prokaryotes/fucoidanases/fucoidanases_full_protein.fasta, "fasta")
+
+with open("fucoidanases_gh_domain_only.fasta", "w") as out:
+    for _, row in df.iterrows():
+        protein = row[3]
+        ali_from = int(row[17]) - 1  # convert to 0-indexed
+        ali_to = int(row[18])
+        if protein in seqs:
+            subseq = seqs[protein].seq[ali_from:ali_to]
+            out.write(f">{protein}_{ali_from+1}_{ali_to}\n{subseq}\n")
+
+
+### verify with another tool, blast maybe#####
+
+### pfamscan the rest for other domains
+
+
+####################### PLASMID PROTEINS ##################################
+hmmscan \
+  --cpu 64 \
+  --domtblout plasmid_MAGs_vs_dbCAN.domtblout \
+  --tblout plasmid_MAGs_vs_dbCAN.tblout \
+  -E 1e-15 --domE 1e-15 \
+  /scratch/shrinivas/Databases/CaZy_db/dbCAN-HMMdb-V14.txt \
+  /scratch/shrinivas/Sargassum/meta-analysis/predicted_proteins/prokaryotic_proteome/plasmid_proteins.faa \
+  > all_PLASMID_MAGs_vs_dbCAN.log
 
 
 
