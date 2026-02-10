@@ -269,9 +269,12 @@ hmmscan \
   > all_PLASMID_MAGs_vs_dbCAN.log
 
 
+for enzyme in PL5 PL6 PL7 PL8 PL14 PL15 PL17 PL18 PL31 PL32 PL34 PL36 PL39 PL41; do
+    count1=$(awk -v e="$enzyme" '$1 ~ e {print $4}' plasmid_MAGs_vs_dbCAN.domtblout | sort -u | wc -l)
+done
 
-
-
+# also completed for fucoidan (only 1 GH29)
+oveall very little stuff in the plasmids. 
 
 #################################### Protein Structure predictions ##############################
 # esmfold basic prediction 
