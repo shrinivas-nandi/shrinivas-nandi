@@ -253,17 +253,6 @@ with open("fucoidanases_gh_domain_only.fasta", "w") as out:
             out.write(f">{protein}_{ali_from+1}_{ali_to}\n{subseq}\n")
 
 
-### verify with another tool, blast maybe#####
-
-### pfamscan the rest for other domains
-/scratch/shrinivas/programs/my_interproscan/interproscan-5.77-108.0/interproscan.sh \
-  -i prokaryotic_plasmid_full_proteins.fasta \
-  -f tsv \
-  -b pfam_annotation_fullproteins \
-  -dp \
-  -appl Pfam \
-  --cpu 60
-
 
 ####################### PLASMID PROTEINS ##################################
 hmmscan \
@@ -282,6 +271,39 @@ done
 
 # also completed for fucoidan (only 1 GH29)
 oveall very little stuff in the plasmids. 
+
+####################### Blast verification ##################################
+### verify with another tool, blast maybe#####
+
+# add the code in once its done
+
+
+### pfamscan the rest for other domains
+/scratch/shrinivas/programs/my_interproscan/interproscan-5.77-108.0/interproscan.sh \
+  -i prokaryotic_plasmid_full_proteins.fasta \
+  -f tsv \
+  -b pfam_annotation_fullproteins \
+  -dp \
+  -appl Pfam \
+  --cpu 60
+
+###### overlapping domains? #######
+# No overlapping doamins were observed. 
+
+
+
+############### SIGNAL P
+# challenge in installing local tool so uploading in chunks to online
+awk -v n=800 '
+/^>/ {
+    if (seq_count % n == 0) {
+        file = sprintf("signal_p%d.fasta", ++file_count)
+    }
+    seq_count++
+}
+{ print >> file }
+' prokaryotic_plasmid_full_proteins.fasta
+
 
 #################################### Protein Structure predictions ##############################
 # esmfold basic prediction 
