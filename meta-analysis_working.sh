@@ -272,6 +272,9 @@ done
 # also completed for fucoidan (only 1 GH29)
 oveall very little stuff in the plasmids. 
 
+##########WORKING WITH FUCOIDANASES #########################################
+
+
 ####################### Blast verification ##################################
 ### verify with another tool, blast maybe#####
 
@@ -292,7 +295,7 @@ oveall very little stuff in the plasmids.
 
 
 
-############### SIGNAL P
+############################## SIGNAL P#############################################
 # challenge in installing local tool so uploading in chunks to online
 awk -v n=800 '
 /^>/ {
@@ -303,6 +306,17 @@ awk -v n=800 '
 }
 { print >> file }
 ' prokaryotic_plasmid_full_proteins.fasta
+
+# set up a confidence cut off of 80%. 
+awk '$6 >= 0.80 || /^#/' singal_p_combined.gff3 > signalp_filtered.gff3
+# 1138 passed with some signal peptide. 
+
+############################## TMMHMM #############################################
+# challenge in installing local tool so uploading in chunks to online
+
+
+
+
 
 
 #################################### Protein Structure predictions ##############################
