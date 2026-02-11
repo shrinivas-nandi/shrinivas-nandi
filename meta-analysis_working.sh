@@ -256,6 +256,13 @@ with open("fucoidanases_gh_domain_only.fasta", "w") as out:
 ### verify with another tool, blast maybe#####
 
 ### pfamscan the rest for other domains
+/scratch/shrinivas/programs/my_interproscan/interproscan-5.77-108.0/interproscan.sh \
+  -i prokaryotic_plasmid_full_proteins.fasta \
+  -f tsv \
+  -b pfam_annotation_fullproteins \
+  -dp \
+  -appl Pfam \
+  --cpu 60
 
 
 ####################### PLASMID PROTEINS ##################################
