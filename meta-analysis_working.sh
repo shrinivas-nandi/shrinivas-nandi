@@ -319,6 +319,22 @@ awk '$6 >= 0.80 || /^#/' singal_p_combined.gff3 > signalp_filtered.gff3
 
 
 
+############# mmseqs cluster ########
+
+mmseqs easy-cluster \
+  gh29_sequences.fasta \
+  gh29_clusters \
+  tmp \
+  --min-seq-id 0.4 \
+  -c 0.8 \
+  --cov-mode 0 \
+  --cluster-mode 2
+
+
+
+
+
+
 #################################### Protein Structure predictions ##############################
 # esmfold basic prediction 
 singularity exec \
