@@ -42,8 +42,8 @@ hmmscan \
 
 ############################## Assess competeing models ##############################
 '''
-This would mean decent coverage of the hmmer. dbCan recommends 0.35 so I will stick to that number. 
-Basically, if my odmain maps to atelast 35% of the hmmer domain. 
+This would mean decent coverage of the hmmer
+Basically, if my odmain maps to atelast 60% of the hmmer domain. 
 Columns to be used. 
 Interpeting some the coordinates
 tlen --> lenght of hmm
