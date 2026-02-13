@@ -330,8 +330,24 @@ mmseqs easy-cluster \
   --cov-mode 0 \
   --cluster-mode 2
 
+awk '
+BEGIN {OFS="\t"}
+{
+    rep = $1
+    if (!(rep in cluster_id)) {
+        count++
+        cluster_id[rep] = "cluster_" count
+    }
+    print $1, $2, cluster_id[rep]
+}
+' gh29_clusters_id0.4_cov0.6_cluster.tsv > gh29_clusters_with_ids.tsv
 
 
+
+# now lets generate sequence similairty between clusters 
+mmseqs createdb gh29_domains.fasta gh29_db 
+
+mmseqs search gh29_db gh29_db gh29_allvsall tmp --threads 64
 
 
 
