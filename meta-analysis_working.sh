@@ -351,6 +351,17 @@ mmseqs search gh29_db gh29_db gh29_allvsall tmp --threads 64
 
 
 
+############ lets load up alignments too ########################
+/home/shrinivas/Programs/mafft-linux64/mafft.bat \
+  --localpair \
+  --maxiterate 1000 \
+  gh29_clusters_id0.4_cov0.6_rep_seq.fasta \
+  > gh29_reps_aligned.fa
+
+
+
+
+
 #################################### Protein Structure predictions ##############################
 # esmfold basic prediction 
 singularity exec \
