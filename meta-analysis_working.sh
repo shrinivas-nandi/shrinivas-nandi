@@ -252,7 +252,7 @@ with open("fucoidanases_gh_domain_only.fasta", "w") as out:
             subseq = seqs[protein].seq[ali_from:ali_to]
             out.write(f">{protein}_{ali_from+1}_{ali_to}\n{subseq}\n")
 
-
+"
 
 ####################### PLASMID PROTEINS ##################################
 hmmscan \
@@ -359,9 +359,6 @@ mmseqs search gh29_db gh29_db gh29_allvsall tmp --threads 64
   > gh29_reps_aligned.fa
 
 
-
-
-
 #################################### Protein Structure predictions ##############################
 # esmfold basic prediction 
 singularity exec \
@@ -373,6 +370,116 @@ singularity exec \
   -o pdb_output_files \
   -m /model \
   --cpu-only
+
+
+#################################### Protein Structure predictions ##############################
+#################################### Protein Structure predictions ##############################
+#################################### Protein Structure predictions ##############################
+#################################### Protein Structure predictions ##############################
+#################################### Protein Structure predictions ##############################
+#################################### Protein Structure predictions ##############################
+
+
+#Okay so very little insight was gained from catalytic domain only. Instead we are moving to focus on complete protein clustering to build similar domain wor
+#High coverage, low pid. 
+
+#lets extract proteins 
+cut -f1 fucoidanases.tsv | sort -u | while read hmm; do
+
+  # remove .hmm from filename
+  fam=$(echo "$hmm" | sed 's/\.hmm$//')
+
+  # get unique protein IDs for that HMM
+  awk -v h="$hmm" '$1==h {print $4}' fucoidanases.tsv | sort -u > ${fam}_ids.txt
+
+  # extract sequences
+  /home/timothy/programs/seqkit_v2.3.1/seqkit grep \
+    -f ${fam}_ids.txt \
+    prokaryotic_plasmid_full_proteins.fasta \
+    -o ${fam}_full_proteins.fasta
+
+done
+
+
+#### MMSEQS Cluster 2####
+#for gh29 first 
+# lets make a db 
+mmseqs createdb GH29_full_proteins.fasta GH29_rep_db
+
+mmseqs cluster GH29_rep_db GH29_rep2_clu GH29_tmp2 \
+  --min-seq-id 0.30 \
+  -c 0.80 \
+  --cov-mode 0 \
+  --cluster-mode 2
+mmseqs createtsv GH29_db GH29_db GH29_clu GH29_clusters.tsv
+rm -r GH29_db* GH29_clu tmp
+
+
+# okay see howm
+
+awk '$1=="MAG_prokaryotic_0081_00094" {print $2}' mmseqs_cluster_gh29.tsv > cluster_0081_00094_ids.txt
+/home/timothy/programs/seqkit_v2.3.1/seqkit grep \
+  -f cluster_0081_00094_ids.txt \
+  GH29_full_proteins.fasta \
+  -o cluster_0081_00094_full_proteins.fasta
+
+# script to verify the lengths. 
+
+CLUST=mmseqs_cluster_gh29.tsv
+FASTA=GH29_full_proteins.fasta
+SEQKIT=/home/timothy/programs/seqkit_v2.3.1/seqkit
+
+echo -e "rep\tn\tmin\tmax\tratio_min_max\tPASS25" > cluster_length_qc_25pct.tsv
+
+while read -r rep; do
+
+  # Get IDs for this cluster
+  awk -v r="$rep" '$1==r{print $2}' "$CLUST" > tmp.ids
+  echo "$rep" >> tmp.ids
+  sort -u tmp.ids -o tmp.ids
+
+  # Extract sequences
+  $SEQKIT grep -f tmp.ids "$FASTA" -o tmp.faa >/dev/null 2>&1
+
+  # Get stats (skip header line)
+  stats=$($SEQKIT stats tmp.faa | awk 'NR==2')
+
+  # Extract fields
+  n=$(echo "$stats" | awk '{print $4}')
+  min=$(echo "$stats" | awk '{print $6}')
+  max=$(echo "$stats" | awk '{print $8}')
+
+  if [ "$n" -eq 0 ]; then
+    echo -e "${rep}\t0\tNA\tNA\tNA\tFAIL" >> cluster_length_qc_25pct.tsv
+  else
+    ratio=$(awk -v min="$min" -v max="$max" 'BEGIN{printf "%.3f", min/max}')
+    pass="FAIL"
+    awk -v r="$ratio" 'BEGIN{if(r>=0.70) exit 0; else exit 1}'
+    if [ $? -eq 0 ]; then pass="PASS"; fi
+    echo -e "${rep}\t${n}\t${min}\t${max}\t${ratio}\t${pass}" >> cluster_length_qc_25pct.tsv
+  fi
+
+done < <(cut -f1 "$CLUST" | sort -u)
+
+rm -f tmp.ids tmp.faa
+
+echo "Wrote cluster_length_qc_25pct.tsv"
+
+####### Okay now lets try to build out a network and edges for each cluster.
+# lets extact rep seq 
+cut -f1 mmseqs_cluster_gh29.tsv | sort -u > GH29_rep_ids.txt
+
+# ############################MAKING OUR DOMAIN FILES ############################
+#cazyme db
+awk 'BEGIN{OFS="\t"}
+{
+  print $4, $1, $6, $18, $19
+}' fucoidanases.tsv > cazyme_domains_clean.tsv
+# pfam scan 
+awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $5, $3, $7, $8, $6}' pfam_annotation_fullproteins.tsv > pfam_domains_clean.tsv
+
+# okay so files for this analysis 
+Domain_files = /scratch/shrinivas/Sargassum/03_meta_analysis/predicted_proteins/fucoidanases_plasmid_prokaryotes/main_files_domain_arch/fucoidanases_all_domains.tsv
 
 
 
