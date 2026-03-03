@@ -507,3 +507,10 @@ FNR==NR{
 }
 {print}
 ' gh29_cluster_sizes.tsv GH29_representatives.fasta > fasta_files_for_tree.fasta
+
+
+/home/shrinivas/Programs/mafft-linux64/mafft.bat \
+  --localpair \
+  --maxiterate 1000 \
+  fasta_files_for_tree.fasta \
+  > mafft_fasta_files_for_tree.fasta
