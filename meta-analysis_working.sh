@@ -514,3 +514,6 @@ FNR==NR{
   --maxiterate 1000 \
   fasta_files_for_tree.fasta \
   > mafft_fasta_files_for_tree.fasta
+
+trimal -automated1 -in mafft_fasta_files_for_tree.fasta -out trimmed_mafft_fasta_files_for_tree.fasta
+
