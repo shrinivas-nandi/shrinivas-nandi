@@ -481,6 +481,29 @@ awk -F'\t' 'BEGIN{OFS="\t"} {print $1, $5, $3, $7, $8, $6}' pfam_annotation_full
 # okay so files for this analysis 
 Domain_files = /scratch/shrinivas/Sargassum/03_meta_analysis/predicted_proteins/fucoidanases_plasmid_prokaryotes/main_files_domain_arch/fucoidanases_all_domains.tsv
 
+####### Lets make some trees ##########
+### prepping files #### 
+# add the counts for each cluster and add that to the sequence header
+awk '
+BEGIN{FS="\t"}
+FNR==NR{
+  map[$1]=$2
+  next
+}
+# FASTA
+/^>/{
+  hdr = substr($0,2)          # remove >
+  id = hdr
+  sub(/[ \t].*$/, "", id)     # first token only
 
-
-
+  if (id in map) {
+    rest = hdr
+    sub(/^[^ \t]+/, "", rest) # preserve anything after first token
+    print ">" map[id] rest
+  } else {
+    print $0
+  }
+  next
+}
+{print}
+' gh29_cluster_sizes.tsv GH29_representatives.fasta > fasta_files_for_tree.fasta
