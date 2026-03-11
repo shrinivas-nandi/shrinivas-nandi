@@ -6,10 +6,12 @@
 2. Domains of interest (text file. one domain per line)
 
 **Tools**
-! Note that you'll have to adjust tool paths in the script itself. 
-Mmseqs2
-Interpro Scan 
+! Note: that you'll have to adjust tool paths in the script itself. 
+Mmseqs2 (install as conda envs for each user)
+Interpro Scan (already installed by SN)
 
+**Databases**
+All databases already exist. There's no need to re-download. 
 
 
 ## Step 1: Run Hmmer and check coverage
