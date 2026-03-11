@@ -1,5 +1,17 @@
 # How to use CAZyme Domain annotation. 
 
+## Step 0: Files and tools you need 
+**Files** 
+1. Proteomic fasta file (protein sequences in fasta format)
+2. Domains of interest (text file. one domain per line)
+
+**Tools**
+! Note that you'll have to adjust tool paths in the script itself. 
+Mmseqs2
+Interpro Scan 
+
+
+
 ## Step 1: Run Hmmer and check coverage
 ```*USAGE* bash run_01_hmmer.sh <proteome.fasta> ```
 
