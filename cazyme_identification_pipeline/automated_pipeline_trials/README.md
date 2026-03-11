@@ -9,13 +9,13 @@
 ### Step 2.5: Sanity Check 
 In between 02 and 03 you can run the following command to check how many are filtered out due to poor coverage 
 
-"""
+$
 for enzyme in GH29 GH95 GH141 GH107 GH168; do ## inset domains of interest
     count1=$(awk -v e="$enzyme" '$1 ~ e {print $4}' prokaryotic_MAGs_vs_dbCAN.domtblout.tsv | sort -u | wc -l)
     count2=$(awk -v e="$enzyme" '$1 ~ e {print $4}' coverage_60_percent_domtblout.tsv | sort -u | wc -l)
     count3=$(awk -v e="$enzyme" '$1 ~ e {print $4}' domain_resolved_coverage_domtblout.tsv | sort -u | wc -l)
     echo "$enzyme  beforeanyfiltering: $count1  aftercoverage: $count2 coverage&overlapcleaned: $count3"
-"""
+$
 
 ## Step 3: Run Interpro Scan ##
 Interproscan takes time. So its better to run it on your domains of interest rather than running it on all the proteins. This script takes a list of of your enzymes of interest, creates a subset of step 2's output, extracts sequences and runs interpro scan.
