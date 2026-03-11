@@ -6,7 +6,7 @@
 ## Step 2: Resolve domains, i.e., keep the best hit domain if multiple are overlapping in the same region
 *USAGE*: python 02_run_resolved_domain.py output/dbcan_with_cov.tsv
 
-### Step 2.5: Sanity Check ###
+### Step 2.5: Sanity Check 
 In between 02 and 03 you can run the following command to check how many are filtered out due to poor coverage 
 
 """
@@ -40,7 +40,8 @@ Also filters out those clusters that have <5 proteins per cluster.
 
 *USAGE* bash 05_run_cluster_analysis.sh domains.txt proteome.faa merged_domain_architecture_filtered.tsv
 
-##Step 6: Generate esmfold predicted strucutres for proteins filtered in step 5 
+## Step 6: Generate esmfold predicted strucutres for proteins filtered in step 5 
+
 
 *USAGE*  bash 06_structure_analysis.sh
 
