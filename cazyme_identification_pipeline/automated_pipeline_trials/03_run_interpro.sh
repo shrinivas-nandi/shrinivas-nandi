@@ -22,8 +22,17 @@ awk -F'\t' 'BEGIN{OFS="\t"} {sub(/\.hmm$/, "", $1); print}' \
 # Step 2: Subset domains of interest
 ################################
 
-awk -F'\t' 'NR==FNR {d[$1]; next} $1 in d' \
-"$DOMAINS" output/resolved_domains_clean.tsv \
+awk -F'\t' '
+NR==FNR {d[$1]; next}
+{
+    for (k in d) {
+        if ($1 ~ "^"k"(_|$)") {
+            print
+            break
+        }
+    }
+}
+' "$DOMAINS" output/resolved_domains_clean.tsv \
 > output/domains_subset.tsv
 
 ################################
