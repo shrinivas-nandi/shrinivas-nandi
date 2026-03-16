@@ -34,8 +34,11 @@ while IFS= read -r domain; do
     ################################
     # Extract unique protein headers for this domain
     ################################
-    awk -F'\t' -v d="$domain" '$3==d && $4=="dbCAN" {print $1}' "$ARCHITECTURE" | sort -u \
-        > "${DOMAIN_DIR}/${domain}_protein_names.txt"
+    awk -F'\t' -v d="$domain" '
+{
+    split($3,a,"_")
+    if (a[1]==d && $4=="dbCAN") print $1
+}' "$ARCHITECTURE"
 
     ################################
     # Extract matching sequences
