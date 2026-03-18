@@ -99,11 +99,17 @@ awk 'NF>0 {print $1}' "$OVER100" | while IFS= read -r domain; do
 
         ################################
         # 4. Extract domain coordinates from original HMMER file
+        # Exact domain or subfamily match:
+        # PL7 matches PL7.hmm and PL7_6.hmm
         ################################
         awk -v d="$domain" 'BEGIN{FS=OFS="\t"}
         NR==FNR {keep[$1]=1; next}
-        $1==(d ".hmm") && ($4 in keep) {
-            print $4, $18, $19
+        {
+            hmm = $1
+            sub(/\.hmm$/, "", hmm)
+            if ((hmm == d || hmm ~ ("^" d "_")) && ($4 in keep)) {
+                print $4, $18, $19
+            }
         }' "$REP_TXT_LOCAL" "$HMMER" > "$DOMAIN_COORDS_TSV"
 
         if [[ -s "$DOMAIN_COORDS_TSV" ]]; then
