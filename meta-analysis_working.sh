@@ -517,3 +517,14 @@ FNR==NR{
 
 trimal -automated1 -in mafft_fasta_files_for_tree.fasta -out trimmed_mafft_fasta_files_for_tree.fasta
 
+
+
+##### FOldseeek ##### 
+
+/scratch/shrinivas/programs/foldseek/bin/foldseek easy-search . . all_vs_all.tsv $TMPDIR   --format-output "query,target,evalue,bits,alntmscore,lddt" #within each dir
+
+
+
+
+
+
