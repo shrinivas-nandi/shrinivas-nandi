@@ -524,6 +524,24 @@ trimal -automated1 -in mafft_fasta_files_for_tree.fasta -out trimmed_mafft_fasta
 /scratch/shrinivas/programs/foldseek/bin/foldseek easy-search . . all_vs_all.tsv $TMPDIR   --format-output "query,target,evalue,bits,alntmscore,lddt" #within each dir
 
 
+for f in /scratch/shrinivas/Sargassum/03_meta_analysis/cazyme_analysis/output/domain_split/fucoidanases/GH29/sequence_similarity/esmfold_output_domain_only/*.pdb; do 
+    /scratch/shrinivas/programs/foldseek/bin/foldseek easy-search "$f" /scratch/shrinivas/Databases/PDB/ tmp_out  /scratch/shrinivas/tmp_foldseek/ \
+    --threads 30 --format-output "query,target,evalue,bits,alntmscore,lddt" >> pdb_foldseek_combined.tsv
+done
+
+
+/home/shrinivas/Programs/mafft-linux64/mafft.bat \
+  --localpair \
+  --maxiterate 1000 \
+  GH141_domain_ready.fasta  \
+  > GH141_domain_reps_aligned.fa
+
+
+  trimal -automated1 -in GH141_domain_reps_aligned.fa -out trimal/trimmed_GH141_domain_reps_aligned.fa
+
+  /home/timothy/programs/iqtree-1.6.12-Linux/bin/iqtree -s trimmed_GH141_domain_reps_aligned.fa -m TEST -bb 1000 -nt AUTO -pre /scratch/shrinivas/Sargassum/03_meta_analysis/cazyme_analysis/output/final_results_clustering_and_similarity/fasta_file/ge5_only/domains/phylogeny/trimal/GH141_iqtree_results
+
+
 
 
 
